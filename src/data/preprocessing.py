@@ -2,7 +2,12 @@
 
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import train_test_split
+import os
+import importlib
+import sys
 
+project_root = os.path.abspath(os.path.join(os.getcwd(), '..'))
 
 def post_process_meta_intensities(intensity_meta:pd.DataFrame) -> pd.DataFrame : 
     intensity_meta = intensity_meta.fillna('num_peptides=0;')
@@ -12,11 +17,13 @@ def post_process_meta_intensities(intensity_meta:pd.DataFrame) -> pd.DataFrame :
    
     return intensity_meta
 
-#Data imputation to replace NaN Values, code taken from PERSEUS
 def impute_normal_down_shift_distribution(unimputerd_dataframe:pd.DataFrame ,column_wise=True, width=0.3, downshift=1.8, seed=2):
     """ 
     Performs imputation across a matrix columnswise
     https://rdrr.io/github/jdreyf/jdcbioinfo/man/impute_normal.html#google_vignette
+    
+    Data imputation to replace NaN Values, code taken from PERSEUS
+    
     :width: Scale factor for the standard deviation of imputed distribution relative to the sample standard deviation.
     :downshift: Down-shifted the mean of imputed distribution from the sample mean, in units of sample standard deviation.
     :seed: Random seed
@@ -59,3 +66,69 @@ def impute_normal_down_shift_distribution(unimputerd_dataframe:pd.DataFrame ,col
     final_df.columns = columns_names
     
     return final_df
+
+def remove_class(df: pd.DataFrame, class_list: list, classified_by: str) -> pd.DataFrame:
+    """
+    Remove rows from DataFrame that are unnecesary for training, and export the removed samples to a CSV file.
+    Args:
+        df (pd.DataFrame): DataFrame containing the data.
+        class_list (list): List of class labels to be removed.
+        classification_by (str): Column name in the DataFrame that contains the class labels.
+    Returns:
+        pd.DataFrame: DataFrame with specified classes removed.
+    """
+
+    modified_df = df[~df[classified_by].isin(class_list)]
+
+    removed_samples = df[df[classified_by].isin(class_list)]
+    project_root = os.path.abspath(os.path.join(os.getcwd(), '..'))
+    output_dir = os.path.join(project_root, 'data', 'data_output')
+    os.makedirs(output_dir, exist_ok=True)
+    removed_samples.to_excel(os.path.join(output_dir,'removed_samples_nos.xlsx'), index=False)
+
+    print(f"Removed samples: {len(removed_samples)}")
+    print(f"Remaining samples: {len(modified_df)}")
+        
+    return modified_df.reset_index(drop=True)
+
+def data_split(df: pd.DataFrame, split_size=0.25, classified_by='code_oncotree'): 
+    """
+    Stratified split of the dataset into training and held-out sets, ensuring that each class has at least two samples. from scikit-learn
+
+    Parameters:
+    df (pd.DataFrame): The initial DataFrame containing the data to be split.
+    
+    Returns:
+    X_train, X_held_out, y_train, y_held_out: The training and held-out sets.
+    """
+    # Filter out classes with only one sample
+    df_wo_single_cases = df.groupby(classified_by).filter(lambda x: len(x) > 1)
+    print ("Classes with only one sample:", df.groupby(classified_by).filter(lambda x: len(x) == 1).shape[0])
+
+    #stratified splitting using scikit-learn
+    X_train, X_held_out, y_train, y_held_out = train_test_split(
+                                                                df_wo_single_cases.drop(columns=['Sample name', classified_by]), 
+                                                                df_wo_single_cases[classified_by], 
+                                                                test_size=split_size, 
+                                                                stratify=df_wo_single_cases[classified_by], 
+                                                                random_state=1,
+                                                                )
+    
+    output_dir = os.path.join(project_root, 'data', 'data_output')
+    os.makedirs(output_dir, exist_ok=True)
+    
+    #Generate training and held-out DataFrames
+    training_indices = list(X_train.index) + list(df.groupby(classified_by).filter(lambda x: len(x) == 1).index)
+    training_df_ = df.loc[training_indices]
+    training_df_.sort_index(inplace=True)
+    training_df_.to_excel(os.path.join(output_dir, 'initial_training_df.xlsx'), index=False)
+    print(f"Training set samples: {len(training_indices)}")
+
+    held_out_indices = list(set(X_held_out.index) - set(training_indices))
+    held_out_df = df.loc[held_out_indices]
+    held_out_df.sort_index(inplace=True)
+    held_out_df.to_excel(os.path.join(output_dir, 'held_out_df.xlsx'), index=False)
+    print(f"Held-out set samples: {len(held_out_indices)}")
+    
+    return training_df_, held_out_df
+
