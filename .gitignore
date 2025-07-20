@@ -3,6 +3,10 @@
 *.xlsx
 *.csv
 *.ipynb_checkpoints
+*.pyc
+*.pio
+*.pyd
+
 
 # Compiled source #
 ###################
