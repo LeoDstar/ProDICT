@@ -91,7 +91,7 @@ def remove_class(df: pd.DataFrame, class_list: list, classified_by: str) -> pd.D
         
     return modified_df.reset_index(drop=True)
 
-def data_split(df: pd.DataFrame, split_size=0.25, classified_by='code_oncotree'): 
+def data_split(df: pd.DataFrame, split_size=0.25, classified_by='code_oncotree', export=True) -> tuple[pd.DataFrame, pd.DataFrame]: 
     """
     Stratified split of the dataset into training and held-out sets, ensuring that each class has at least two samples. from scikit-learn
 
@@ -121,14 +121,16 @@ def data_split(df: pd.DataFrame, split_size=0.25, classified_by='code_oncotree')
     training_indices = list(X_train.index) + list(df.groupby(classified_by).filter(lambda x: len(x) == 1).index)
     training_df_ = df.loc[training_indices]
     training_df_.sort_index(inplace=True)
-    training_df_.to_excel(os.path.join(output_dir, 'initial_training_df.xlsx'), index=False)
     print(f"Training set samples: {len(training_indices)}")
 
     held_out_indices = list(set(X_held_out.index) - set(training_indices))
     held_out_df = df.loc[held_out_indices]
     held_out_df.sort_index(inplace=True)
-    held_out_df.to_excel(os.path.join(output_dir, 'held_out_df.xlsx'), index=False)
     print(f"Held-out set samples: {len(held_out_indices)}")
+    
+    if export:
+        training_df_.to_excel(os.path.join(output_dir, 'initial_training_df.xlsx'), index=False)
+        held_out_df.to_excel(os.path.join(output_dir, 'held_out_df.xlsx'), index=False)
     
     return training_df_, held_out_df
 
