@@ -19,6 +19,10 @@ from scipy.stats import chi2
 from timeit import default_timer as timer
 from joblib import Parallel, delayed
 from tqdm import tqdm  
+import warnings
+from sklearn.exceptions import ConvergenceWarning
+
+
 
 ### Paths ###
 project_root = os.path.abspath(os.path.join(os.getcwd(), '..'))
@@ -267,5 +271,227 @@ def elnet_wrapper (df:pd.DataFrame,
 
     return (df_concatenated)
 
+
+def statistic_from_coefficients (Coefficients_df:pd.DataFrame, true_class: list):
+    """ 
+    Args: 
+        Coefficients_df: DataFrame that contains all the coefficients of the cross folded Logistic Regression.
+
+    Returns: 
+        coefficients_stats: Dataframe with the mean, std, Coeficient of Variation and p_value of the coefficients. Values per each protein. .
+        significant_proteins: List of significant proteins, sorted by coefficient value.
+    """
+    #Reading file and obtaining statistics from coefficients
+    coefficients_stats = Coefficients_df.describe()
+    coefficients_stats = coefficients_stats.T[coefficients_stats.loc['mean']!=0].T[1:3] #This selecst coffiecients different than 0 and the rows 'mean and sd'
+
+    #Calculating frequency
+    coefficients_stats.loc['Freq'] = [(Coefficients_df[column] != 0).sum()/ Coefficients_df[column].count() for column in coefficients_stats.columns]#-> Selecting by index
+
+    # Calculating Wald Test for each coefficient 
+    coefficients_stats.loc['Wald Chi-Square'] = (np.square(coefficients_stats.loc['mean']))/(np.square(coefficients_stats.loc['std']))
+    p_values = 1 - chi2.cdf(coefficients_stats.loc['Wald Chi-Square'], df=1)
+
+    fdr_corrections = fdrcorrection(p_values, alpha=.01, method='indep', is_sorted=False)
+    coefficients_stats.loc[' p-value_corrected'] = fdr_corrections[1]
+    coefficients_stats.loc['Significant'] = fdr_corrections[0] #Significance is definded with alpha = 0.01 from chi2 dist.
+
+    #Defining if the Wald value is greater than the significance level at 99% = 6.635. N
+    #coefficients_stats.loc['Significant'] = [True if i > 6.635 else False for i in coefficients_stats.loc['Wald Chi-Square'] ]
+    
+    coefficients_stats= coefficients_stats.transpose()
+    
+    #returning list of significant proteins in order of coefficient value
+    protein_coefficients_stats = coefficients_stats.iloc[:-5,:].sort_values(by='mean', ascending=False) #Sort by mean value of coefficients
+
+    significant_proteins = protein_coefficients_stats[protein_coefficients_stats['Significant']==1].index.tolist()
+    
+    ## EXPORTING ## 
+    class_name = "_".join(true_class)
+        
+    coefficients_stats.to_excel(os.path.join(output_dir, f'{class_name}_folds_stats.xlsx'), index=True)
+    
+    with open(os.path.join(output_dir,f'{class_name}_selected_features.txt'), 'w') as file:
+        for item in significant_proteins:
+            file.write("%s\n" % item)
+
+
+    ## Message to user ##
+    print("With ",protein_coefficients_stats.shape[0], " folds, the following statistics were obtained, from feature selection:")
+    print("• Mean MCC score:",np.round(coefficients_stats.loc['MCC_score']['mean'], 4), '±', np.round(coefficients_stats.loc['MCC_score']['std'], 4))
+    print()
+    
+    print("--"*20)
+    print("• Top 3 proteins with highest coefficients:")
+    print(protein_coefficients_stats.head(3))
+    print()
+    
+    print("--"*20)
+    print("• List of significant proteins:",significant_proteins)
+    print(f"• Number of significant proteins: {len(significant_proteins)}")
+    print()
+    
+    print("--"*20) 
+    if np.round(coefficients_stats.loc['MCC_score']['mean'], 4) < 0.70:
+        print(" ✖ Warning! ✖: The mean MCC score is below 0.7, indicating poor model performance.")
+    elif 0.80 > np.round(coefficients_stats.loc['MCC_score']['mean'], 4) > 0.70:
+        print("✦ The mean MCC score is above 0.7, indicating good model performance. ✦")
+    else:
+        print("★ The mean MCC score is above 0.8, indicating reliable model performance. ★")
+
+    return coefficients_stats, significant_proteins
+
+
+def reshape_df_for_fitting(training_df: pd.DataFrame, selected_features: list) -> pd.DataFrame:
+    """
+    Input DataFrame must have been generated with the `binary_labeling` function.
+    Reshape the ARMS training DataFrame to include only the specified proteins.
+
+    Parameters:
+    training_df (pd.DataFrame): The DataFrame containing training data.
+    selected_features (list): List of proteins to include in the reshaped DataFrame.
+    
+    Returns:
+    pd.DataFrame: Reshaped DataFrame with specified proteins.
+    """
+    return pd.concat([training_df.iloc[:,:3],training_df.filter(items=selected_features)],axis=1)
+
+
+def nested_cross_validation_logistic_regression(train_df:pd.DataFrame, n_splits:int, random_state=93, classified_by='code_oncotree'):
+    """
+    Perform nested cross-validation for Logistic Regression with hyperparameter tuning using GridSearchCV.
+
+    Parameters:
+    - train_df: DataFrame containing the training data with features and target variable.
+    - random_state: Random state for reproducibility.
+    Returns:
+    - outer_scores: List of scores from the outer cross-validation.
+    - best_params: List of best hyperparameters from the inner cross-validation.
+    """
+
+    y = train_df['Classifier']  # True values (dependent variable)
+    X = train_df.drop(columns=['Sample name', 'Classifier', classified_by], axis=1) # Independent variables (proteins)
+
+    # Define the hyperparameter grid for Logistic Regression
+    param_grid = {'C': [0.1, 1, 10]}
+
+    # Set up the Logistic Regression model with L2 regularization (Ridge)
+    logreg = LogisticRegression(penalty='elasticnet',
+                                solver='saga',
+                                l1_ratio=0,  # Ridge regularization
+                                max_iter=10000,
+                                class_weight='balanced',
+                                warm_start=False)
+
+    # Set up MCC scorer
+    mcc_scorer = make_scorer(matthews_corrcoef)
+
+    # Set up inner and outer cross-validation
+    inner_cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+    outer_cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+
+    # Lists to store results
+    outer_scores = []
+    best_params = []
+    inner_fold_cycle = 1
+    # Perform nested cross-validation
+    for train_idx, test_idx in outer_cv.split(X, y):
+        X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+        y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+
+        # Inner cross-validation with GridSearchCV
+        grid_search = GridSearchCV(estimator=logreg, param_grid=param_grid, cv=inner_cv, scoring=mcc_scorer)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always", category=ConvergenceWarning)
+            grid_search.fit(X_train, y_train)
+
+            for warning in w:
+                if issubclass(warning.category, ConvergenceWarning):
+                    print(f"Inner fold model did not converged.")
+
+        # Get the best parameters and the score for the inner CV
+        best_param = grid_search.best_params_
+        best_score = grid_search.best_score_
+
+        # Evaluate the best model on the outer test set
+        best_model = grid_search.best_estimator_
+        y_pred = best_model.predict(X_test)
+        outer_score = matthews_corrcoef(y_test, y_pred)
+
+        # Store the results
+        outer_scores.append(outer_score)
+        best_params.append(best_param)
+
+        # Print the best parameters and the cross-validation score for each fold
+        print(f"{inner_fold_cycle} Inner fold best parameter={best_param}, Score={best_score:.4f}, Outer Validation MCC Score: {outer_score:.4f}")
+        print()
+        inner_fold_cycle += 1
+ 
+    # Print overall mean MCC score
+    print(f"Average MCC across all outer folds: {np.mean(outer_scores):.4f}")
+    
+    return outer_scores, best_params
+
+
+def wrapper_nested_cv(train_df:pd.DataFrame, random_state_tries=4, n_splits=4, classified_by='code_oncotree') -> dict:
+    """
+    Wrapper function for nested cross-validation. 
+    Repeats the nested cross-validation process for a specified number of random state tries.
+
+    Args:
+        train_df (pd.DataFrame): The training DataFrame.
+        random_state_tries (int, optional): Number of random state tries. Defaults to 4.
+        n_splits (int, optional): Number of splits for cross-validation. Defaults to 4.
+        classified_by (str, optional): Column name used for classification. Defaults to 'code_oncotree'.
+
+    Returns:
+        dict: Results of the nested cross-validation.
+    """
+    
+    results = {}
+    for i in list(range(random_state_tries)):
+        print(f"• Running for random_state={i}")
+        outer_scores, best_params = nested_cross_validation_logistic_regression(
+            train_df, 
+            random_state=i,
+            n_splits=n_splits,
+            classified_by=classified_by
+        )
+        results[i] = {
+            'outer_scores': outer_scores,
+            'best_params': best_params
+        }
+        print()
+        print("-" * 50)
+    
+    return results
+
+
+def nested_cv_hparameters_selection (input_dict:dict):
+    
+    # Initialize the result dictionary
+    result = {}
+
+    # Loop through the original dictionary
+    for key, value in input_dict.items():
+        scores = value['outer_scores']
+        params = value['best_params']
+        
+        for score, param in zip(scores, params):
+            C_value = param['C']
+            
+            # If the C value is not already in the result, initialize it
+            if C_value not in result:
+                result[C_value] = {'scores': [], 'count': 0, 'avg': 0}
+            
+            # Append the score, update count
+            result[C_value]['scores'].append(score)
+            result[C_value]['count'] += 1
+
+    # Calculate averages
+    for C_value, stats in result.items():
+        stats['avg'] = sum(stats['scores']) / stats['count']
+    print (pd.DataFrame(result))
+    return result
 
 
