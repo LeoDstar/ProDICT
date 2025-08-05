@@ -17,6 +17,8 @@ from statsmodels.stats.diagnostic import kstest_normal
 from statsmodels.stats.multitest import fdrcorrection
 from scipy.stats import chi2
 from timeit import default_timer as timer
+from joblib import Parallel, delayed
+from tqdm import tqdm  
 
 ### Paths ###
 project_root = os.path.abspath(os.path.join(os.getcwd(), '..'))
@@ -138,6 +140,132 @@ def hparameter_grid_search(df: pd.DataFrame, n_splits: int, l1_ratio_list: list,
     return grid_search.cv_results_, grid_search.best_params_, grid_search.best_score_, grid_search
 
 
+def elnet_cross_val (df:pd.DataFrame, classified_by:str, l1_ratio:float, C:float, n_splits:int, random_state=1) -> pd.DataFrame:
+    """
+    This function return the coefficients of the independent variables defined by ML Logistic Regression. Uses 5k Cross Validation. 
+    df:input the imputated and concatenated dataframe, generated with previous functions.
+    random_state: random state of CV
+
+    """
+
+    log_reg_coeff_list = []
+    results = []
+
+    
+    y_train = df['Classifier'] 
+    X_train = df.drop(columns=['Sample name', 'Classifier', classified_by], axis=1) 
+
+    #Defining model parameters
+    log_reg = LogisticRegression(penalty='elasticnet',  
+                                 solver='saga', 
+                                 l1_ratio=l1_ratio ,
+                                 max_iter=10000, 
+                                 C = C, 
+                                 class_weight= 'balanced',
+                                 warm_start=False,
+                                )
+    #Saving the id used for each fold:
+        
+    # Create StratifiedKFold object.
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+    for train_index, test_index in skf.split(X_train, y_train):
+        x_train_fold, x_test_fold = X_train.iloc[train_index], X_train.iloc[test_index]
+        y_train_fold, y_test_fold = y_train.iloc[train_index], y_train.iloc[test_index]
+        log_reg.fit(x_train_fold, y_train_fold)
+        
+    #Logaritmic regression model coeffiecient:
+        log_reg_coeff_list = log_reg.coef_.tolist()
+    
+    #Logaritmic regression model coeffiecient INTERCEPT:
+        log_reg_coeff_list[0].append (log_reg.intercept_[0])
+        
+    #Model predictions for score in folds
+        y_predict_fold = log_reg.predict(x_test_fold)
+                
+    #Intercept        
+        results.append(log_reg_coeff_list[0])
+        
+    #F1_score for class 1 - entity prediction
+        f1_score_class_1 = f1_score(y_test_fold, y_predict_fold, pos_label=1)
+        log_reg_coeff_list[0].append(f1_score_class_1)
+    
+    #F1_score for class 0 - entity prediction
+        f1_score_class_0 = f1_score(y_test_fold, y_predict_fold, pos_label=0)
+        log_reg_coeff_list[0].append(f1_score_class_0)
+    
+    #F1_score for class 1 - entity prediction
+        f1_score_class_weighted = f1_score(y_test_fold, y_predict_fold, average= 'weighted')
+        log_reg_coeff_list[0].append(f1_score_class_weighted)
+    
+    #MCC Score
+        MCC_score = matthews_corrcoef(y_test_fold, y_predict_fold)
+        log_reg_coeff_list[0].append(MCC_score)
+
+
+    col_names = X_train.columns.tolist()
+    col_names.extend(['Intercept','F1_1', 'F1_0','F1_weighted','MCC_score' ])
+    
+    
+    coeff_score_df = pd.DataFrame(results)
+    coeff_score_df.columns = col_names
+    
+    return(coeff_score_df)
+
+
+def elnet_wrapper (df:pd.DataFrame, 
+                             classified_by:str,
+                             tumor_type_name:str,
+                             l1_ratio:float, 
+                             C:float,
+                             n_splits=4, 
+                             n_repeats=1, 
+                             n_jobs=8,
+                             export=True) -> pd.DataFrame:
+    
+    """ 
+    Wrapper funtion of elnet_cross_val. Executes "n_repeats" times a cross validated logistic regression, storing the coefficients and scores for each "n_repeats" fit of the data.
+    An adaptation of bootstrapping
+    
+    Args:
+        df: Input dataframe with proteins intensities, imputated and with no NaN values
+        n_repeats: input the number of repetitions. n_repeats = 1 : 1 experiment with 5k Cross validation
+        tumor_type_name: Name of the tumor type for which the coefficients are being calculated.
+        l1_ratio: L1 ratio for the ElasticNet regularization.
+        C: Inverse of regularization strength; smaller values specify stronger regularization.
+        n_splits: Number of splits for cross-validation.
+        n_jobs: Number of jobs to run in parallel. Default is 8.
+        export: Boolean to indicate whether to export the results to an Excel file.
+        tumor_type_name: Name of the tumor type for which the coefficients are being calculated.
+    Returns:
+        df_concatenated: DataFrame containing the concatenated results of the coefficients and scores from multiple runs of the logistic regression.
+    """
+
+    if not isinstance(n_repeats, int) or n_repeats <= 0:
+        raise ValueError("The number of repetitions 'n_repeats' must be a positive integer.")
+    if df.empty:
+        raise ValueError("Input dataframe 'df' is empty. Please provide a valid dataframe.")
+
+    repetitions = range(n_repeats)#number of times the ML algorithm will run. triesx5 = #coefficients
+
+
+    results = Parallel(n_jobs=n_jobs)(
+        delayed(elnet_cross_val)(df, 
+                                 classified_by=classified_by, 
+                                 l1_ratio=l1_ratio, 
+                                 C=C, 
+                                 random_state=iteration, 
+                                 n_splits=n_splits) for iteration in tqdm(repetitions, desc="Running Logistic Regression", unit="iteration")
+    )
+
+    # Concatenate the results into one DataFrame
+    df_concatenated = pd.concat(results, ignore_index=True)
+
+    #Export
+    if export:
+        df_concatenated.to_excel(os.path.join(output_dir, f'{tumor_type_name}_coefficients.xlsx'), index=False)
+        print(f'DataFrame exported to: {os.path.join(output_dir,  f'{tumor_type_name}_coefficients.xlsx')}')
+
+    return (df_concatenated)
 
 
 
