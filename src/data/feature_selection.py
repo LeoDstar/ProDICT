@@ -1,5 +1,7 @@
+### Dependencies ###
 import pandas as pd
 import numpy as np
+import os
 
 import importlib
 
@@ -16,8 +18,13 @@ from statsmodels.stats.multitest import fdrcorrection
 from scipy.stats import chi2
 from timeit import default_timer as timer
 
+### Paths ###
+project_root = os.path.abspath(os.path.join(os.getcwd(), '..'))
+output_dir = os.path.join(project_root, 'data', 'data_output')
+os.makedirs(output_dir, exist_ok=True)
 
 
+### Functions ###
 def binary_labeling(df: pd.DataFrame, classified_by: str, true_class: list ) -> pd.DataFrame:
     """
     Adds a binary classifier column to the DataFrame based on the specified true classes.

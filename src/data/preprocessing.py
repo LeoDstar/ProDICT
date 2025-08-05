@@ -1,5 +1,6 @@
 # Function to preprocess the input files from TOPAS pipeline for ML modelling
 
+### Dependencies ###
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -7,8 +8,12 @@ import os
 import importlib
 import sys
 
+### Paths ###
 project_root = os.path.abspath(os.path.join(os.getcwd(), '..'))
+output_dir = os.path.join(project_root, 'data', 'data_output')
+os.makedirs(output_dir, exist_ok=True)
 
+### Functions ###
 def post_process_meta_intensities(intensity_meta:pd.DataFrame) -> pd.DataFrame : 
     intensity_meta = intensity_meta.fillna('num_peptides=0;')
     intensity_meta = intensity_meta.replace('num_peptides=|;','',regex=True)
