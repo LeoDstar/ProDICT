@@ -7,7 +7,7 @@ import importlib
 
 from scipy.stats import shapiro, kstest
 from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.linear_model import LogisticRegression, Ridge, Lasso, ElasticNet, RidgeCV, LassoCV,ElasticNetCV, LogisticRegressionCV
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold, GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, make_scorer, accuracy_score, classification_report, f1_score, matthews_corrcoef, mean_squared_error,r2_score, roc_auc_score, roc_curve, auc, precision_recall_curve
@@ -25,7 +25,7 @@ from sklearn.exceptions import ConvergenceWarning
 
 ### Paths ###
 project_root = os.path.abspath(os.path.join(os.getcwd(), '..'))
-output_dir = os.path.join(project_root, 'data', 'data_output')
+output_dir = os.path.join(project_root,'tumor_type_prediction', 'data', 'data_output', 'model_fit')
 os.makedirs(output_dir, exist_ok=True)
 
 
@@ -55,7 +55,8 @@ def nested_cross_validation_logistic_regression(train_df:pd.DataFrame, n_splits:
                                 l1_ratio=0,  # Ridge regularization
                                 max_iter=10000,
                                 class_weight='balanced',
-                                warm_start=False)
+                                warm_start=False,
+                                random_state=93)
 
     # Set up MCC scorer
     mcc_scorer = make_scorer(matthews_corrcoef)
@@ -317,7 +318,7 @@ def logistic_regression_results (log_reg_model, df_train: pd.DataFrame, df_test:
     test_probabilities.insert(3, value = log_reg_model.predict_proba(df_test.filter(items=log_reg_model.feature_names_in_)).T[1] , column = 'Probability')
 
     test_probs_file = os.path.join(output_dir,f'test_{class_name}_probabilities.xlsx')
-    test_probabilities.to_excel(test_probs_file, index=False)
+    test_probabilities.to_excel(test_probs_file, index=False, engine='xlsxwriter')
 
     
     train_probabilities = df_train[['Sample name','code_oncotree','Classifier']]
@@ -325,8 +326,8 @@ def logistic_regression_results (log_reg_model, df_train: pd.DataFrame, df_test:
     
 
     train_probs_path = os.path.join(output_dir,f'train_{class_name}_probabilities.xlsx')
-    train_probabilities.to_excel(train_probs_path, index=False)
-    
+    train_probabilities.to_excel(train_probs_path, index=False, engine='xlsxwriter')
+
     return (final_model_coefficients, train_probabilities , test_probabilities)  
 
 

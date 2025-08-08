@@ -7,7 +7,7 @@ import importlib
 
 from scipy.stats import shapiro, kstest
 from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.linear_model import LogisticRegression, Ridge, Lasso, ElasticNet, RidgeCV, LassoCV,ElasticNetCV, LogisticRegressionCV
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold, GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, make_scorer, accuracy_score, classification_report, f1_score, matthews_corrcoef, mean_squared_error,r2_score, roc_auc_score, roc_curve, auc, precision_recall_curve
@@ -26,7 +26,7 @@ from sklearn.exceptions import ConvergenceWarning
 
 ### Paths ###
 project_root = os.path.abspath(os.path.join(os.getcwd(), '..'))
-output_dir = os.path.join(project_root, 'data', 'data_output')
+output_dir = os.path.join(project_root,'tumor_type_prediction', 'data', 'data_output', 'feature_selection')
 os.makedirs(output_dir, exist_ok=True)
 
 
@@ -114,7 +114,8 @@ def hparameter_grid_search(df: pd.DataFrame, n_splits: int, l1_ratio_list: list,
     scorer = make_scorer(matthews_corrcoef)
 
     # Create a logistic regression model
-    logistic_regression = LogisticRegression(warm_start=True)
+    logistic_regression = LogisticRegression(warm_start=True,
+                                             random_state=93)
 
     # Define Stratified K-Fold Cross-Validation
     stratified_kfold = StratifiedKFold(n_splits=n_splits, 
@@ -167,6 +168,7 @@ def elnet_cross_val (df:pd.DataFrame, classified_by:str, l1_ratio:float, C:float
                                  C = C, 
                                  class_weight= 'balanced',
                                  warm_start=False,
+                                 random_state=93
                                 )
     #Saving the id used for each fold:
         
@@ -266,7 +268,7 @@ def elnet_wrapper (df:pd.DataFrame,
 
     #Export
     if export:
-        df_concatenated.to_excel(os.path.join(output_dir, f'{tumor_type_name}_coefficients.xlsx'), index=False)
+        df_concatenated.to_excel(os.path.join(output_dir, f'{tumor_type_name}_coefficients.xlsx'), engine='xlsxwriter', index=False)
         print(f'DataFrame exported to: {os.path.join(output_dir,  f'{tumor_type_name}_coefficients.xlsx')}')
 
     return (df_concatenated)
@@ -308,9 +310,9 @@ def statistic_from_coefficients (Coefficients_df:pd.DataFrame, true_class: list)
     
     ## EXPORTING ## 
     class_name = "_".join(true_class)
-        
-    coefficients_stats.to_excel(os.path.join(output_dir, f'{class_name}_folds_stats.xlsx'), index=True)
-    
+
+    coefficients_stats.to_excel(os.path.join(output_dir, f'{class_name}_folds_stats.xlsx'), engine='xlsxwriter', index=True)
+
     with open(os.path.join(output_dir,f'{class_name}_selected_features.txt'), 'w') as file:
         for item in significant_proteins:
             file.write("%s\n" % item)
@@ -381,7 +383,8 @@ def nested_cross_validation_logistic_regression(train_df:pd.DataFrame, n_splits:
                                 l1_ratio=0,  # Ridge regularization
                                 max_iter=10000,
                                 class_weight='balanced',
-                                warm_start=False)
+                                warm_start=False,
+                                random_state=93)
 
     # Set up MCC scorer
     mcc_scorer = make_scorer(matthews_corrcoef)

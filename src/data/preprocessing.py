@@ -10,10 +10,24 @@ import sys
 
 ### Paths ###
 project_root = os.path.abspath(os.path.join(os.getcwd(), '..'))
-output_dir = os.path.join(project_root, 'data', 'data_output')
+output_dir = os.path.join(project_root,'tumor_type_prediction', 'data', 'data_output','data_frames')
 os.makedirs(output_dir, exist_ok=True)
 
 ### Functions ###
+
+def read_table_with_correct_sep(file_path):
+    ext = os.path.splitext(file_path)[1].lower()
+
+    if ext == ".csv":
+        return pd.read_csv(file_path)
+    elif ext in [".tsv", ".txt"]:
+        return pd.read_csv(file_path, sep="\t")
+    elif ext == ".xlsx":
+        return pd.read_excel(file_path, engine='openpyxl')
+
+    else:
+        raise ValueError(f"Unsupported file extension for : {file_path}")
+
 def post_process_meta_intensities(intensity_meta:pd.DataFrame) -> pd.DataFrame : 
     intensity_meta = intensity_meta.fillna('num_peptides=0;')
     intensity_meta = intensity_meta.replace('num_peptides=|;','',regex=True)
@@ -37,17 +51,20 @@ def impute_normal_down_shift_distribution(unimputerd_dataframe:pd.DataFrame ,col
     
     print(unimputerd_dataframe.shape)
 
-    unimputerd_df = unimputerd_dataframe.iloc[:,:]
+    unimputerd_df = unimputerd_dataframe.apply(pd.to_numeric, errors="coerce")
+    if unimputerd_df.shape[1] == 0:
+        raise ValueError("No numeric columns found in the input dataframe for imputation.")
 
-    unimputerd_matrix = unimputerd_df.replace({pd.NA: np.nan}, inplace=True) #Added to modify pandas's NAN values into  numpy NAN values
-    
-    unimputerd_matrix = unimputerd_df.to_numpy()
+    unimputerd_matrix = unimputerd_df.to_numpy(dtype=np.float64)
+    unimputerd_matrix[~np.isfinite(unimputerd_matrix)] = np.nan
+
     columns_names = unimputerd_df.columns
     rownames = unimputerd_df.index
-    unimputerd_matrix[~np.isfinite(unimputerd_matrix)] = None
+
     main_mean = np.nanmean(unimputerd_matrix)
     main_std = np.nanstd(unimputerd_matrix)
     np.random.seed(seed = seed)
+    
     def impute_normal_per_vector(temp:np.ndarray,width=width, downshift=downshift):
         """ Performs imputation for a single vector """
         if column_wise:
@@ -62,9 +79,8 @@ def impute_normal_down_shift_distribution(unimputerd_dataframe:pd.DataFrame ,col
         downshifted_mean = temp_mean - (downshift * temp_sd) 
         n_missing = np.count_nonzero(np.isnan(temp))
         temp[np.isnan(temp)] = np.random.normal(loc=downshifted_mean, scale=shrinked_sd, size=n_missing)
-        if n_missing > 0:
-            print 
         return temp
+    
     final_matrix = np.apply_along_axis(impute_normal_per_vector, 0, unimputerd_matrix)
     final_df = pd.DataFrame(final_matrix)
     final_df.index = rownames
@@ -86,10 +102,7 @@ def remove_class(df: pd.DataFrame, class_list: list, classified_by: str) -> pd.D
     modified_df = df[~df[classified_by].isin(class_list)]
 
     removed_samples = df[df[classified_by].isin(class_list)]
-    project_root = os.path.abspath(os.path.join(os.getcwd(), '..'))
-    output_dir = os.path.join(project_root, 'data', 'data_output')
-    os.makedirs(output_dir, exist_ok=True)
-    removed_samples.to_excel(os.path.join(output_dir,'removed_samples_nos.xlsx'), index=False)
+    removed_samples.to_excel(os.path.join(output_dir,'removed_samples_nos.xlsx'), engine='xlsxwriter', index=False)
 
     print(f"Removed samples: {len(removed_samples)}")
     print(f"Remaining samples: {len(modified_df)}")
@@ -118,10 +131,7 @@ def data_split(df: pd.DataFrame, split_size=0.25, classified_by='code_oncotree',
                                                                 stratify=df_wo_single_cases[classified_by], 
                                                                 random_state=1,
                                                                 )
-    
-    output_dir = os.path.join(project_root, 'data', 'data_output')
-    os.makedirs(output_dir, exist_ok=True)
-    
+        
     #Generate training and held-out DataFrames
     training_indices = list(X_train.index) + list(df.groupby(classified_by).filter(lambda x: len(x) == 1).index)
     training_df_ = df.loc[training_indices]
@@ -134,8 +144,8 @@ def data_split(df: pd.DataFrame, split_size=0.25, classified_by='code_oncotree',
     print(f"Held-out set samples: {len(held_out_indices)}")
     
     if export:
-        training_df_.to_excel(os.path.join(output_dir, 'initial_training_df.xlsx'), index=False)
-        held_out_df.to_excel(os.path.join(output_dir, 'held_out_df.xlsx'), index=False)
-    
+        training_df_.to_excel(os.path.join(output_dir, 'initial_training_df.xlsx'), engine='xlsxwriter', index=False)
+        held_out_df.to_excel(os.path.join(output_dir, 'held_out_df.xlsx'), engine='xlsxwriter', index=False)
+
     return training_df_, held_out_df
 
