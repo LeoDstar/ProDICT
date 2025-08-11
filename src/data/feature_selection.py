@@ -8,7 +8,6 @@ import importlib
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold, GridSearchCV
-from sklearn.preprocessing import 
 from sklearn.metrics import  make_scorer,  f1_score, matthews_corrcoef
 from statsmodels.stats.multitest import fdrcorrection
 from scipy.stats import chi2

@@ -1,0 +1,22 @@
+name: tumor_type_clasifier
+channels:
+  - defaults
+dependencies:
+  - python=3.13
+  - scipy=1.15.3
+  - numpy=2.3.1
+  - seaborn=0.13.2
+  - statsmodels=0.14.4
+  - scikit-learn=1.6.1
+  - matplotlib=3.10.0
+  - pandas=2.2.3
+  - ipykernel=6.29.5
+  - tqdm=4.67.1
+  - openpyxl=3.1.5
+  - xlsxwriter=3.2.5
+
+  - pip=25.1
+  - pip:
+    - -r ttc_pip_requirements.txt
+
+prefix: /home/lestrada/miniconda3/envs/tumor_type_clasifier
