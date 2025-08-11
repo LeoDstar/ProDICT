@@ -95,6 +95,7 @@ def nested_cross_validation_logistic_regression(train_df:pd.DataFrame, n_splits:
     
     return outer_scores, best_params
 
+
 def wrapper_nested_cv(train_df:pd.DataFrame, random_state_tries=4, n_splits=4, classified_by='code_oncotree') -> dict:
     """
     Wrapper function for nested cross-validation. 
@@ -293,7 +294,9 @@ def logistic_regression_results (log_reg_model, df_train: pd.DataFrame, df_test:
     
     final_model_coefficients = pd.DataFrame(results)
     final_model_coefficients.columns = col_names
-    
+    final_model_coefficients_path = os.path.join(output_dir, f'{class_name}_log_reg_coefficients.xlsx')
+    final_model_coefficients.to_excel(final_model_coefficients_path, index=False, engine='xlsxwriter')
+
     ### Results of model fit ###
     print(f'# of Iterations: {log_reg_model.n_iter_}')
     print(f'MCC train: {MCC_score_train}')
