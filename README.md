@@ -17,18 +17,18 @@ This classifier processes proteomic data to identify biomarkers and build predic
 ```
 tumor_type_prediction/
 ├── scripts/
-│   └── entity_classifier_script.py      # Main execution script
+│   └── entity_classifier_script.py      # Main execution script.
 ├── src/
 │   └── data/
-│       ├── entity_model_settings.py     # Configuration parameters
-│       ├── preprocessing.py             # Data preprocessing functions
-│       ├── feature_selection.py         # Feature selection methods
-│       └── model_fit.py                 # Model training and evaluation
+│       ├── entity_model_settings.py     # Configuration parameters for running entity_classifier_script.py.
+│       ├── preprocessing.py             # Data preprocessing functions.
+│       ├── feature_selection.py         # Feature selection methods functions.
+│       └── model_fit.py                 # Model training and evaluation function.
 ├── data/
-│   └── data_output/                     # Generated results and exports
-│       ├── data_frames                  # dataframes used in the process
-│       ├── feature_selection            # Cross validation and selected features
-│       ├── model_fit                    # Model as pickle and results on test set
+│   └── data_output/                     # Generated results from the pipeline run.
+│       ├── data_frames                  # Dataframes generated and used.
+│       ├── feature_selection            # Folds coefficients from cross validation; and selected features list. 
+│       ├── model_fit                    # Logistic regression model object (from scikit-learn) exported as pickle; and probabilities results for test set.
 └── README.md
 ```
 
@@ -42,7 +42,7 @@ pip install pandas numpy scikit-learn openpyxl pathlib
 
 ### Configuration
 
-Edit `src/data/entity_model_settings.py` to configure:
+According to the data inputs, edit `src/data/entity_model_settings.py` to configure:
 
 - `TARGET_CLASS`: Entity class to classify
 - `CLASSIFIED_BY`: Column name for classification
@@ -51,11 +51,13 @@ Edit `src/data/entity_model_settings.py` to configure:
 - Model hyperparameters
 - Cross-validation settings
 
+Check all the possible parameters and its meaning on the Configuration Parameters section
+
 ### Running the Script
 
+Froom the project root folder run:
 ```bash
-cd scripts/
-python entity_classifier_script.py
+python script/entity_classifier_script.py
 ```
 
 ## 📊 Input Data
@@ -97,7 +99,7 @@ The pipeline expects three main data files:
 Parameters in `entity_model_settings.py`:
 
 # Configuration Parameters
-(To be modified to something standard)
+(To be modified to something for public domain, avoid exposing privat data)
 ## Data File Parameters
 
 | Parameter | Value | Description |
@@ -176,7 +178,7 @@ The script provides comprehensive logging:
 
 - **Output Log**: All print statements saved to timestamped file
 - **Warning Log**: Warnings and errors logged separately
-- **Error Handling**: Graceful error handling with detailed messages
+- **Error Handling**: Error handling with detailed messages
 
 
 ## 📝 Usage Example
