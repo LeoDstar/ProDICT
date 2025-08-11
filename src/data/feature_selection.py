@@ -5,15 +5,11 @@ import os
 
 import importlib
 
-from scipy.stats import shapiro, kstest
-from sklearn.model_selection import train_test_split, cross_val_score
+
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold, GridSearchCV
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import confusion_matrix, make_scorer, accuracy_score, classification_report, f1_score, matthews_corrcoef, mean_squared_error,r2_score, roc_auc_score, roc_curve, auc, precision_recall_curve
-from sklearn.datasets import make_classification
-from sklearn.preprocessing import MinMaxScaler
-from statsmodels.stats.diagnostic import kstest_normal
+from sklearn.model_selection import StratifiedKFold, GridSearchCV
+from sklearn.preprocessing import 
+from sklearn.metrics import  make_scorer,  f1_score, matthews_corrcoef
 from statsmodels.stats.multitest import fdrcorrection
 from scipy.stats import chi2
 from timeit import default_timer as timer
