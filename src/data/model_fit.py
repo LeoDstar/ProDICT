@@ -2,18 +2,19 @@
 import pandas as pd
 import numpy as np
 import os
+import warnings
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold, GridSearchCV
 from sklearn.metrics import confusion_matrix, make_scorer, f1_score, matthews_corrcoef
 from joblib import dump
-import warnings
 from sklearn.exceptions import ConvergenceWarning
+from entity_model_settings import run_folder_name
 
 
 ### Paths ###
-project_root = os.path.abspath(os.path.join(os.getcwd(), '..'))
-output_dir = os.path.join(project_root,'tumor_type_prediction', 'data', 'data_output', 'model_fit')
+project_root = os.path.abspath(os.getcwd())
+output_dir = os.path.join(project_root, 'data', 'data_output', run_folder_name, 'model_fit')
 os.makedirs(output_dir, exist_ok=True)
 
 
