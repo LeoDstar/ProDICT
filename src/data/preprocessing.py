@@ -3,13 +3,15 @@
 ### Dependencies ###
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
 import os
+from sklearn.model_selection import train_test_split
+from entity_model_settings import run_folder_name
+
 
 
 ### Paths ###
-project_root = os.path.abspath(os.path.join(os.getcwd(), '..'))
-output_dir = os.path.join(project_root,'tumor_type_prediction', 'data', 'data_output','data_frames')
+project_root = os.path.abspath(os.getcwd())
+output_dir = os.path.join(project_root, 'data', 'data_output', run_folder_name, 'data_frames')
 os.makedirs(output_dir, exist_ok=True)
 
 ### Functions ###

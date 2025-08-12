@@ -16,12 +16,12 @@ from joblib import Parallel, delayed
 from tqdm import tqdm  
 import warnings
 from sklearn.exceptions import ConvergenceWarning
-
+from entity_model_settings import run_folder_name
 
 
 ### Paths ###
-project_root = os.path.abspath(os.path.join(os.getcwd(), '..'))
-output_dir = os.path.join(project_root,'tumor_type_prediction', 'data', 'data_output', 'feature_selection')
+project_root = os.path.abspath(os.getcwd())
+output_dir = os.path.join(project_root, 'data', 'data_output', run_folder_name, 'feature_selection')
 os.makedirs(output_dir, exist_ok=True)
 
 

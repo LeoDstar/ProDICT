@@ -1,6 +1,8 @@
 # =============================================================================
 # CONFIGURATION - MODIFY THESE PARAMETERS AS NEEDED
 # =============================================================================
+from datetime import datetime
+
 
 # Data file parameters
 PROCESSED_DATA_FOLDER = 'Test_datasets_PROdict/'
@@ -43,6 +45,11 @@ IMPUTATION_WIDTH = 0.3              # Width parameter for normal distribution im
 IMPUTATION_DOWNSHIFT = 1.8          # Downshift parameter for normal distribution imputation
 IMPUTATION_SEED = 2                 # Random seed for imputation
 
+
+# Output directory (DO NOT MODIFY)
+timestamp = datetime.now().strftime('%y%m%d_%H%M')
+target_class_name = "_".join(TARGET_CLASS) if isinstance(TARGET_CLASS, list) else str(TARGET_CLASS)
+run_folder_name = f"{target_class_name}_{timestamp}_results"
 # =============================================================================
 # END CONFIGURATION 
 # =============================================================================
