@@ -33,7 +33,7 @@ def nested_cross_validation_logistic_regression(train_df:pd.DataFrame, n_splits:
     """
 
     y = train_df['Classifier']  # True values (dependent variable)
-    X = train_df.drop(columns=['Sample name', 'Classifier', classified_by], axis=1) # Independent variables (proteins)
+    X = train_df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1) # Independent variables (proteins)
 
     # Define the hyperparameter grid for Logistic Regression
     param_grid = {'C': [0.1, 1, 10]}
@@ -250,10 +250,10 @@ def logistic_regression_results (log_reg_model, df_train: pd.DataFrame, df_test:
     results =[]  
     class_name = "_".join(true_class)
 
-    X_train = df_train.drop(columns=['Sample name', 'Classifier', classified_by], axis=1)
+    X_train = df_train.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1)
     y_train = df_train['Classifier']
 
-    X_test = df_test.drop(columns=['Sample name', 'Classifier', classified_by], axis=1)
+    X_test = df_test.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1)
     y_test = df_test['Classifier']
 
     ### Processing Data from model ###
@@ -335,7 +335,7 @@ def logistic_regression_ridge(df: pd.DataFrame, C_:float, true_class:list, class
     """
     #Selecting Data
     y_train = df['Classifier']  # True values (dependent variable)
-    X_train = df.drop(columns=['Sample name', 'Classifier', classified_by], axis=1) # Independent variables (proteins)
+    X_train = df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1) # Independent variables (proteins)
 
 
     #Defining model parameters

@@ -95,7 +95,7 @@ def hparameter_grid_search(df: pd.DataFrame, n_splits: int, l1_ratio_list: list,
 
     # Selecting Data
     y_train = df['Classifier']  # True values (dependent variable)
-    X_train = df.drop(columns=['Sample name', 'Classifier', classified_by], axis=1)  # Protein (independent variables) (Keep only quantitative data)
+    X_train = df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1)  # Protein (independent variables) (Keep only quantitative data)
 
     # Define the parameter grid for GridSearchCV
     param_grid = {
@@ -153,7 +153,7 @@ def elnet_cross_val (df:pd.DataFrame, classified_by:str, l1_ratio:float, C:float
 
     
     y_train = df['Classifier'] 
-    X_train = df.drop(columns=['Sample name', 'Classifier', classified_by], axis=1) 
+    X_train = df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1) 
 
     #Defining model parameters
     log_reg = LogisticRegression(penalty='elasticnet',  
@@ -351,7 +351,7 @@ def reshape_df_for_fitting(training_df: pd.DataFrame, selected_features: list) -
     Returns:
     pd.DataFrame: Reshaped DataFrame with specified proteins.
     """
-    return pd.concat([training_df.iloc[:,:3],training_df.filter(items=selected_features)],axis=1)
+    return pd.concat([training_df.iloc[:,:4],training_df.filter(items=selected_features)],axis=1)
 
 
 def nested_cross_validation_logistic_regression(train_df:pd.DataFrame, n_splits:int, random_state=93, classified_by='code_oncotree'):
@@ -367,7 +367,7 @@ def nested_cross_validation_logistic_regression(train_df:pd.DataFrame, n_splits:
     """
 
     y = train_df['Classifier']  # True values (dependent variable)
-    X = train_df.drop(columns=['Sample name', 'Classifier', classified_by], axis=1) # Independent variables (proteins)
+    X = train_df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1) # Independent variables (proteins)
 
     # Define the hyperparameter grid for Logistic Regression
     param_grid = {'C': [0.1, 1, 10]}
