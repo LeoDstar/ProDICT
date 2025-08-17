@@ -12,7 +12,7 @@ warnings.filterwarnings('ignore')
 
 ### Paths ###
 project_root = os.path.abspath(os.getcwd())
-output_dir = os.path.join(project_root, 'data', 'data_output', run_folder_name, 'model_fit')
+output_dir = os.path.join(project_root, 'data', 'data_output', run_folder_name, 'graphs')
 os.makedirs(output_dir, exist_ok=True)
 
 ###Functions###
