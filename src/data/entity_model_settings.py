@@ -12,10 +12,10 @@ METADATA_PATH = '/media/kusterlab/internal_projects/active/TOPAS/WP31/Playground
 # File names
 PREPROCESSED_FP_INTENSITY = 'input_quantifications_small.csv'
 PREPROCESSED_FP_Z_SCORES = 'df_z_scores_small.csv'
-METADATA_FILE = 'METADATA_PAN_CANCER_Batch300.xlsx'
+METADATA_FILE = 'METADATA_PANCANCER_PAPER_336_CJ_corrected_with_pids.xlsx'
 
 # Classification parameters
-TARGET_CLASS = ['BRCA']  # Change this for different tumor types (e.g., ['BRCA'], ['LUAD'], etc.)
+TARGET_CLASS = ['CHDM']  # Change this for different tumor types (e.g., ['BRCA'], ['LUAD'], etc.)
 CLASSIFIED_BY = 'code_oncotree'  # Column name for classification - default is 'code_oncotree'
 SAMPLES_COLUMN = 'Sample name'  # Column name for sample identifiers - default is 'Sample name'
 CELL_CONTENT_COLUMN = 'TCC_Bioinfo'  # Column name for tumor cell content - default is 'TCC_Bioinfo'
@@ -23,13 +23,13 @@ CELL_CONTENT_COLUMN = 'TCC_Bioinfo'  # Column name for tumor cell content - defa
 # Data processing parameters
 NOS_CASES = ['CUPNOS', 'ADNOS', 'SARCNOS', 'SCCNOS', 'SOLIDNOS', 'RCSNOS', 'GCTNOS']
 OTHER_CASES = ['missing'] # Additional classes to remove - Default is 'missing'
-SPLIT_SIZE = 0.25  # Proportion for held-out set
+SPLIT_SIZE = 0.20  # Proportion for held-out set
 HIGH_CONFIDENCE_THRESHOLD = 0.7  # Threshold for high confidence proteins
 
 # Feature selection parameters
-FEATURE_SELECTION_L1_RATIOS = [0.5,0.7]  # L1 ratios to test for ElasticNet
-FEATURE_SELECTION_C_VALUES = [0.1,1]     # C values to test for ElasticNet
-GRID_SEARCH_N_SPLITS = 4            # Number of splits for grid search
+FEATURE_SELECTION_L1_RATIOS = [0.5]  # L1 ratios to test for ElasticNet
+FEATURE_SELECTION_C_VALUES = [1]     # C values to test for ElasticNet
+GRID_SEARCH_N_SPLITS = 3           # Number of splits for grid search
 
 ELNET_L1_RATIO = 0.5                     # L1 ratio for ElasticNet wrapper
 ELNET_C_VALUE = 1                        # C value for ElasticNet wrapper
@@ -38,7 +38,7 @@ ELNET_N_REPEATS = 25                     # Number of repeats for cross-validatio
 ELNET_N_JOBS = 16                        # Number of parallel jobs
 
 # Model fitting parameters
-NESTED_CV_RANDOM_STATE_TRIES = 5    # Number of random state tries for nested CV
+NESTED_CV_RANDOM_STATE_TRIES = 3    # Number of random state tries for nested CV
 NESTED_CV_N_SPLITS = 3              # Number of splits for nested CV
 
 # Imputation parameters

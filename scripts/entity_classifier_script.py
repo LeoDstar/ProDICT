@@ -126,10 +126,10 @@ def load_data(project_root, prep):
     try:
         input_quantifications = prep.read_table_with_correct_sep(intensity_path_file)
         df_z_scores = prep.read_table_with_correct_sep(z_scores_path_file)
-        input_metadata = prep.read_table_with_correct_sep(the_metadata_file,
-                                                          usecols=['Sample name', 'code_oncotree', 'Tumor cell content', 'TCC_Bioinfo', 'TCC GROUP'],
-                                                          dtype={'Sample name': 'string', 'code_oncotree': 'string', 'Tumor cell content': 'float64', 'TCC_Bioinfo': 'float64', 'TCC GROUP': 'string'},
-                                                          na_values=['', 'NA', 'NaN', 'nan', 'N/A', 'n/a', 'None', 'TBD'])
+        input_metadata = pd.read_excel(the_metadata_file,
+                                        usecols=['Sample name', 'code_oncotree', 'Tumor cell content', 'TCC_Bioinfo', 'TCC GROUP'],
+                                        dtype={'Sample name': 'string', 'code_oncotree': 'string', 'Tumor cell content': 'float64', 'TCC_Bioinfo': 'float64', 'TCC GROUP': 'string'},
+                                        na_values=['', 'NA', 'NaN', 'nan', 'N/A', 'n/a', 'None', 'TBD'])
 
         print("Data files loaded successfully.")
         print(f"Quantifications shape: {input_quantifications.shape}")
@@ -390,8 +390,8 @@ def model_fitting(target_training_df, target_ho_df, target_proteins, fs, mf):
         print(f"Error during model fitting: {e}")
         return None, None, None, None, None
 
-def generate_graphs(initial_df, target_proteins, grph):
-    """Generate and save graphs for initial data exploration"""
+def generate_graphs(initial_df, test_target_scores, target_proteins, grph):
+    """Generate and save graphs for results exploration"""
     print("="*80)
     print("Generating graphs...")
     print("="*80)
@@ -468,7 +468,7 @@ def main():
     model_results = model_fitting(target_training_df, target_ho_df, target_proteins, fs, mf)
 
     # Generate graphs
-    sgenerate_graphs(initial_df, target_proteins, grph)
+    generate_graphs(initial_df, target_proteins, grph)
 
     if model_results[0] is not None:
         print("=" * 80)
