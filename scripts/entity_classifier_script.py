@@ -95,7 +95,8 @@ def import_custom_modules():
         import preprocessing as prep
         import feature_selection as fs
         import model_fit as mf
-        return prep, fs, mf
+        import graphs as grph
+        return prep, fs, mf, grph
     except ImportError as e:
         print(f"Error importing custom modules: {e}")
         print("Make sure the following modules are in src/data/:")
@@ -125,7 +126,10 @@ def load_data(project_root, prep):
     try:
         input_quantifications = prep.read_table_with_correct_sep(intensity_path_file)
         df_z_scores = prep.read_table_with_correct_sep(z_scores_path_file)
-        input_metadata = prep.read_table_with_correct_sep(the_metadata_file)
+        input_metadata = prep.read_table_with_correct_sep(the_metadata_file,
+                                                          usecols=['Sample name', 'code_oncotree', 'Tumor cell content', 'TCC_Bioinfo', 'TCC GROUP'],
+                                                          dtype={'Sample name': 'string', 'code_oncotree': 'string', 'Tumor cell content': 'float64', 'TCC_Bioinfo': 'float64', 'TCC GROUP': 'string'},
+                                                          na_values=['', 'NA', 'NaN', 'nan', 'N/A', 'n/a', 'None', 'TBD'])
 
         print("Data files loaded successfully.")
         print(f"Quantifications shape: {input_quantifications.shape}")
@@ -174,7 +178,8 @@ def preprocess_data(input_quantifications, df_z_scores, input_metadata, prep):
     prot_quant_imputed[SAMPLES_COLUMN] = prot_quant_imputed[SAMPLES_COLUMN].str.replace('pat_', '')
     
     # Dataset with protein intensities and metadata
-    samples_metadata = input_metadata[[SAMPLES_COLUMN, CLASSIFIED_BY]]
+    input_metadata['TCC'] = input_metadata['TCC_Bioinfo'].fillna(input_metadata['Tumor cell content'])
+    samples_metadata = input_metadata[[SAMPLES_COLUMN, CLASSIFIED_BY, 'TCC', 'TCC GROUP']]
     
     initial_df = samples_metadata.merge(prot_quant_imputed, left_on=SAMPLES_COLUMN, right_on=SAMPLES_COLUMN)
     
@@ -227,7 +232,13 @@ def split_data(initial_df, z_scores_initial_df, prep):
     print(f"Removing undefined cases: {cases_to_remove}")
 
     # Removing samples not part of the Oncotree classification
-    ml_initial_df = prep.remove_class(initial_df, cases_to_remove, CLASSIFIED_BY)
+    ml_initial_df = (
+        initial_df
+        .pipe(prep.remove_class, cases_to_remove, CLASSIFIED_BY)
+        .pipe(prep.remove_class, ['very low', 'missing'], 'TCC GROUP')
+        .loc[lambda df: df['TCC GROUP'].notna()]
+    )
+
 
     # Splitting dataset into training and held-out sets
     training_df, held_out_df = prep.data_split(
@@ -379,6 +390,26 @@ def model_fitting(target_training_df, target_ho_df, target_proteins, fs, mf):
         print(f"Error during model fitting: {e}")
         return None, None, None, None, None
 
+def generate_graphs(initial_df, target_proteins, grph):
+    """Generate and save graphs for initial data exploration"""
+    print("="*80)
+    print("Generating graphs...")
+    print("="*80)
+    
+    # UMAP plot
+    UMAP_plot = grph.create_umap_plot(
+        df=initial_df, 
+        feature_columns=target_proteins, 
+        color_column=CLASSIFIED_BY, 
+        metadata_cols=[SAMPLES_COLUMN, CLASSIFIED_BY, 'TCC GROUP'],
+        n_neighbors=5
+    )
+    
+    # TCC vs Probability plot
+    TCC_plot = grph.plot_tcc_vs_probability(initial_df, test_target_scores)
+    
+    return TCC_plot, UMAP_plot
+
 def print_configuration():
     """Print current configuration settings"""
     print("=" * 80)
@@ -410,7 +441,7 @@ def main():
     
     # Setup paths and import modules
     project_root = setup_paths()
-    prep, fs, mf = import_custom_modules()
+    prep, fs, mf, grph = import_custom_modules()
     
     # Load data
     input_quantifications, df_z_scores, input_metadata = load_data(project_root, prep)
@@ -435,7 +466,10 @@ def main():
     
     # Model fitting
     model_results = model_fitting(target_training_df, target_ho_df, target_proteins, fs, mf)
-    
+
+    # Generate graphs
+    sgenerate_graphs(initial_df, target_proteins, grph)
+
     if model_results[0] is not None:
         print("=" * 80)
         print(f"CLASSIFIER WORKFLOW COMPLETED SUCCESSFULLY FOR {TARGET_CLASS}!")

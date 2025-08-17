@@ -102,8 +102,9 @@ def remove_class(df: pd.DataFrame, class_list: list, classified_by: str) -> pd.D
 
     modified_df = df[~df[classified_by].isin(class_list)]
 
+    class_name = '_'.join(class_list)
     removed_samples = df[df[classified_by].isin(class_list)]
-    removed_samples.to_excel(os.path.join(output_dir,'removed_samples_nos.xlsx'), engine='xlsxwriter', index=False)
+    removed_samples.to_excel(os.path.join(output_dir,f'removed_samples_{class_name}.xlsx'), engine='xlsxwriter', index=False)
 
     print(f"Removed samples: {len(removed_samples)}")
     print(f"Remaining samples: {len(modified_df)}")

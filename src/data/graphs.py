@@ -1,6 +1,8 @@
 ###Dependencies###
 import os
 import plotly.express as px
+import pandas as pd
+import numpy as np
 import umap
 
 from sklearn.preprocessing import StandardScaler
@@ -112,12 +114,13 @@ def create_umap_plot(df, feature_columns, n_components=3, color_column='code_onc
             xaxis_title="UMAP 1",
             yaxis_title="UMAP 2",
             zaxis_title="UMAP 3",
+            aspectmode='cube',
             camera=dict(
                 eye=dict(x=1.5, y=1.5, z=1.5)
             )
         ),
         width=900,
-        height=700,
+        height=900,
         margin=dict(l=0, r=0, b=0, t=50)
     )
 
@@ -128,4 +131,43 @@ def create_umap_plot(df, feature_columns, n_components=3, color_column='code_onc
     print(f"Plot saved as: {file_name}")
     return fig
 
+def plot_tcc_vs_probability(TCC_df: pd.DataFrame, probabilities_df: pd.DataFrame) -> px.scatter:
+    """
+    Create a scatter plot of TCC (y-axis) vs Probability (x-axis), matched on 'Sample name'. Exports to HTML and PNG.
 
+    Parameters
+    ----------
+    TCC_df : pd.DataFrame
+        Must contain columns ['Sample name', 'TCC'].
+
+    probabilities_df : pd.DataFrame
+        Must contain columns ['Sample name', 'Probability'].
+
+    """
+    
+    # merge on 'Sample name'
+    merged_df = probabilities_df.merge(
+        TCC_df[['Sample name', 'TCC']], 
+        on='Sample name', 
+        how='inner'
+    )
+
+    # create scatter plot
+    fig = px.scatter(
+        merged_df,
+        x='Probability',
+        y='TCC',
+        hover_data=['Sample name'],
+        title="TCC vs Probability"
+    )
+
+    # set axis ranges
+    fig.update_xaxes(range=[-1, 101])
+    fig.update_yaxes(range=[-1, 101])
+
+    # export
+
+    fig.write_html('/'.join([output_dir, 'TCC_probs_scatterplot.html']), include_plotlyjs=True)
+    fig.write_image('/'.join([output_dir, 'TCC_probs_scatterplt.png']))
+    print (f"Plot saved as: {output_dir}/TCC_probs_scatterplot.html and {output_dir}/TCC_probs_scatterplt.png")
+    return fig

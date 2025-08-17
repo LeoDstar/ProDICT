@@ -18,6 +18,7 @@ METADATA_FILE = 'METADATA_PAN_CANCER_Batch300.xlsx'
 TARGET_CLASS = ['BRCA']  # Change this for different tumor types (e.g., ['BRCA'], ['LUAD'], etc.)
 CLASSIFIED_BY = 'code_oncotree'  # Column name for classification - default is 'code_oncotree'
 SAMPLES_COLUMN = 'Sample name'  # Column name for sample identifiers - default is 'Sample name'
+CELL_CONTENT_COLUMN = 'TCC_Bioinfo'  # Column name for tumor cell content - default is 'TCC_Bioinfo'
 
 # Data processing parameters
 NOS_CASES = ['CUPNOS', 'ADNOS', 'SARCNOS', 'SCCNOS', 'SOLIDNOS', 'RCSNOS', 'GCTNOS']
