@@ -83,7 +83,7 @@ def impute_normal_down_shift_distribution(unimputerd_dataframe:pd.DataFrame ,col
     
     return final_df
 
-def remove_class(df: pd.DataFrame, class_list: list, classified_by: str, output_directory=output_directory) -> pd.DataFrame:
+def remove_class(df: pd.DataFrame, class_list: list, classified_by: str, output_directory:str) -> pd.DataFrame:
     """
     Remove rows from DataFrame that are unnecesary for training, and export the removed samples to a CSV file.
     Args:
@@ -105,7 +105,7 @@ def remove_class(df: pd.DataFrame, class_list: list, classified_by: str, output_
         
     return modified_df.reset_index(drop=True)
 
-def data_split(df: pd.DataFrame, split_size=0.25, classified_by='code_oncotree', export=True, output_directory=output_directory) -> tuple[pd.DataFrame, pd.DataFrame]: 
+def data_split(df: pd.DataFrame, output_directory:str, split_size=0.25, classified_by='code_oncotree', export=True) -> tuple[pd.DataFrame, pd.DataFrame]: 
     """
     Stratified split of the dataset into training and held-out sets, ensuring that each class has at least two samples. from scikit-learn
 

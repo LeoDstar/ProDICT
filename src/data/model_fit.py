@@ -236,7 +236,7 @@ def classification_scores (calc_probs_df):
     return probabilities_df
 
 
-def logistic_regression_results (log_reg_model, df_train: pd.DataFrame, df_test: pd.DataFrame, true_class:list, classified_by:str, output_directory ) -> tuple:  
+def logistic_regression_results (log_reg_model, df_train: pd.DataFrame, df_test: pd.DataFrame, true_class:list, classified_by:str, output_directory:str ) -> tuple:  
     """
     class_criteria: string that defines the classification criteria (i.e. 'Tissue_origin' or 'tissue_topology'). 'code_oncotree' is always included. 
     """
@@ -317,7 +317,7 @@ def logistic_regression_results (log_reg_model, df_train: pd.DataFrame, df_test:
     return (final_model_coefficients, train_probabilities , test_probabilities)  
 
 
-def logistic_regression_ridge(df: pd.DataFrame, C_:float, true_class:list, classified_by:str, output_directory) -> LogisticRegression : #Define the hypeparameters for this entity
+def logistic_regression_ridge(df: pd.DataFrame, C_:float, true_class:list, classified_by:str, output_directory:str) -> LogisticRegression : #Define the hypeparameters for this entity
 
     """Logistic Regression, regularized with Ridge. 
     Input: 

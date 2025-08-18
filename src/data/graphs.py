@@ -11,11 +11,14 @@ import warnings
 warnings.filterwarnings('ignore')
 
 ###Functions###
-def create_umap_plot(df, feature_columns, n_components=3, color_column='code_oncotree', 
-                       metadata_cols=['Sample name', 'code_oncotree', 'TCC'],
-                       n_neighbors=15, min_dist=0.1,
-                       title=target_class_name,
-                       output_directory=None
+def create_umap_plot(df, 
+                     feature_columns,
+                     output_directory: str, 
+                     n_components=3, 
+                     color_column='code_oncotree', 
+                     metadata_cols=['Sample name', 'code_oncotree', 'TCC'],
+                     n_neighbors=15, min_dist=0.1,
+                     title=target_class_name, 
                        ):
     """
     Create a 3D UMAP visualization with Plotly
@@ -128,7 +131,7 @@ def create_umap_plot(df, feature_columns, n_components=3, color_column='code_onc
     print(f"Plot saved as: {file_name}")
     return fig
 
-def plot_tcc_vs_probability(TCC_df: pd.DataFrame, probabilities_df: pd.DataFrame, output_directory) -> px.scatter:
+def plot_tcc_vs_probability(TCC_df: pd.DataFrame, probabilities_df: pd.DataFrame, output_directory: str) -> px.scatter:
     """
     Create a scatter plot of TCC (y-axis) vs Probability (x-axis), matched on 'Sample name'. Exports to HTML and PNG.
 

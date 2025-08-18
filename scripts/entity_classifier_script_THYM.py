@@ -8,11 +8,12 @@ Command-line runnable version of the original Jupyter notebook
 ###############
 import sys
 import pandas as pd
-import numpy as np
+import numpy as np # type: ignore
 import warnings
 import logging
 import multiprocessing as mp
 import sys
+import os
 
 from datetime import datetime
 from pathlib import Path
@@ -27,6 +28,9 @@ if str(module_path) not in sys.path:
     
 from entity_model_settings_THYM import *
 
+project_root = os.path.abspath(os.getcwd())
+output_dir = os.path.join(project_root, 'data', run_folder_name, 'data_frames')
+os.makedirs(output_dir, exist_ok=True)
 
 #####################
 ### Logging Setup ###
@@ -129,7 +133,7 @@ def load_data(project_root, prep):
         input_metadata = pd.read_excel(the_metadata_file,
                                         usecols=['Sample name', 'code_oncotree', 'Tumor cell content', 'TCC_Bioinfo', 'TCC GROUP'],
                                         dtype={'Sample name': 'string', 'code_oncotree': 'string', 'Tumor cell content': 'float64', 'TCC_Bioinfo': 'float64', 'TCC GROUP': 'string'},
-                                        na_values=['', 'NA', 'NaN', 'nan', 'N/A', 'n/a', 'None', 'TBD'])
+                                        na_values=['', 'NA', 'NaN', 'nan', 'N/A', 'n/a', 'None', 'TBD', 'notavailable'])
 
         print("Data files loaded successfully.")
         print(f"Quantifications shape: {input_quantifications.shape}")
@@ -146,7 +150,7 @@ def load_data(project_root, prep):
         print(f"  - {the_metadata_file}")
         sys.exit(1)
 
-def preprocess_data(input_quantifications, df_z_scores, input_metadata, prep):
+def preprocess_data(input_quantifications, df_z_scores, input_metadata,prep):
     """Preprocess all data"""
     print("="*80)
     print("Preprocessing data...")
@@ -222,7 +226,7 @@ def preprocess_data(input_quantifications, df_z_scores, input_metadata, prep):
     
     return initial_df, peptides_df_binary, z_scores_initial_df
 
-def split_data(initial_df, z_scores_initial_df, prep):
+def split_data(initial_df, z_scores_initial_df, output_directory, prep):
     """Split data into training and held-out sets"""
     print("="*80)
     print("Splitting data...")
@@ -234,18 +238,19 @@ def split_data(initial_df, z_scores_initial_df, prep):
     # Removing samples not part of the Oncotree classification
     ml_initial_df = (
         initial_df
-        .pipe(prep.remove_class, cases_to_remove, CLASSIFIED_BY)
-        .pipe(prep.remove_class, ['very low', 'missing'], 'TCC GROUP')
+        .pipe(prep.remove_class, cases_to_remove, CLASSIFIED_BY, output_directory)
+        .pipe(prep.remove_class, ['very low', 'missing'], 'TCC GROUP', output_directory)
         .loc[lambda df: df['TCC GROUP'].notna()]
     )
 
 
     # Splitting dataset into training and held-out sets
     training_df, held_out_df = prep.data_split(
-        ml_initial_df, 
+        ml_initial_df,
+        output_directory=output_directory, 
         split_size=SPLIT_SIZE, 
         classified_by=CLASSIFIED_BY, 
-        export=True
+        export=True,
     )
     
     # Z_scores dataset
@@ -283,7 +288,7 @@ def class_specific_workflow(training_df, held_out_df, z_scores_train_df, peptide
 
     return target_training_df, target_ho_df, target_z_scores_train_df
 
-def feature_selection(target_z_scores_train_df, fs):
+def feature_selection(target_z_scores_train_df, output_directory, fs):
     """Perform feature selection using ElasticNet"""
     print("="*80)
     print("Starting feature selection...")
@@ -317,13 +322,14 @@ def feature_selection(target_z_scores_train_df, fs):
             tumor_type_name=f'{class_name}_features', 
             l1_ratio=target_best_params.get('l1_ratio'), 
             C=target_best_params.get('C'), 
+            output_directory = output_directory,
             n_splits=ELNET_N_SPLITS, 
             n_repeats=ELNET_N_REPEATS, 
             n_jobs=ELNET_N_JOBS, 
             export=True
         )
         
-        target_stats, target_proteins = fs.statistic_from_coefficients(target_cross_val_coeffs, TARGET_CLASS)
+        target_stats, target_proteins = fs.statistic_from_coefficients(target_cross_val_coeffs, TARGET_CLASS, output_directory)
         
     except Exception as e:
         print(f"Warning: Feature selection failed: {e}")
@@ -331,7 +337,7 @@ def feature_selection(target_z_scores_train_df, fs):
     print(f"Selected {len(target_proteins)} protein features")
     return target_proteins
     
-def model_fitting(target_training_df, target_ho_df, target_proteins, fs, mf):
+def model_fitting(target_training_df, target_ho_df, target_proteins, output_directory,fs, mf):
     """Fit the final model and evaluate"""
     print("="*80)
     print("Starting model fitting...")
@@ -355,7 +361,7 @@ def model_fitting(target_training_df, target_ho_df, target_proteins, fs, mf):
             classified_by=CLASSIFIED_BY
         )
         target_nested_hp = mf.nested_cv_hparameters_selection(target_nested_cv_results)
-        hyperparameter_C = pd.DataFrame(target_nested_hp).T.sort_values(by='avg', ascending=False).index.tolist()[0]
+        hyperparameter_C = pd.DataFrame(target_nested_hp).T.sort_values(by='count', ascending=False).index.tolist()[0]
         print(f"Selected hyperparameter C: {hyperparameter_C}")
     except Exception as e:
         print(f"Warning: Hyperparameter selection failed: {e}")
@@ -367,17 +373,20 @@ def model_fitting(target_training_df, target_ho_df, target_proteins, fs, mf):
         target_log_reg_model = mf.logistic_regression_ridge(
             target_training_fs, 
             hyperparameter_C, 
+            output_directory,
             TARGET_CLASS, 
             classified_by=CLASSIFIED_BY
-        )
+            )
         
         # Get results
         target_coefficients, target_train_probabilities, target_test_probabilities = mf.logistic_regression_results(
             target_log_reg_model, 
             target_training_fs, 
-            target_test_fs,  # Use properly shaped test set
+            target_test_fs,  
+            output_directory,
             TARGET_CLASS, 
-            classified_by=CLASSIFIED_BY
+            classified_by=CLASSIFIED_BY,
+            
         )
         
         # Classification scores
@@ -390,7 +399,7 @@ def model_fitting(target_training_df, target_ho_df, target_proteins, fs, mf):
         print(f"Error during model fitting: {e}")
         return None, None, None, None, None
 
-def generate_graphs(initial_df, test_target_scores, target_proteins, grph):
+def generate_graphs(initial_df, test_target_scores, target_proteins, output_directory, grph):
     """Generate and save graphs for results exploration"""
     print("="*80)
     print("Generating graphs...")
@@ -399,14 +408,15 @@ def generate_graphs(initial_df, test_target_scores, target_proteins, grph):
     # UMAP plot
     UMAP_plot = grph.create_umap_plot(
         df=initial_df, 
+        output_directory=output_directory,
         feature_columns=target_proteins, 
         color_column=CLASSIFIED_BY, 
         metadata_cols=[SAMPLES_COLUMN, CLASSIFIED_BY, 'TCC GROUP'],
-        n_neighbors=5
-    )
+        n_neighbors=5,
+        )
     
     # TCC vs Probability plot
-    TCC_plot = grph.plot_tcc_vs_probability(initial_df, test_target_scores)
+    TCC_plot = grph.plot_tcc_vs_probability(initial_df, test_target_scores, output_directory)
     
     return TCC_plot, UMAP_plot
 
@@ -441,6 +451,7 @@ def main():
     
     # Setup paths and import modules
     project_root = setup_paths()
+    print(f'Expected output directory: {output_dir}')
     prep, fs, mf, grph = import_custom_modules()
     
     # Load data
@@ -453,7 +464,7 @@ def main():
     
     # Split data
     training_df, held_out_df, z_scores_train_df = split_data(
-        initial_df, z_scores_initial_df, prep
+        initial_df, z_scores_initial_df, output_dir, prep
     )
     
     # Class-specific workflow
@@ -462,13 +473,13 @@ def main():
     )
     
     # Feature selection
-    target_proteins = feature_selection(target_z_scores_train_df, fs)
+    target_proteins = feature_selection(target_z_scores_train_df, output_dir, fs)
     
     # Model fitting
-    model_results = model_fitting(target_training_df, target_ho_df, target_proteins, fs, mf)
+    model_results = model_fitting(target_training_df, target_ho_df, target_proteins, output_dir,fs, mf)
 
     # Generate graphs
-    generate_graphs(initial_df, model_results[4],target_proteins, grph)
+    generate_graphs(initial_df, model_results[4], target_proteins, output_dir ,grph)
 
     if model_results[0] is not None:
         print("=" * 80)
