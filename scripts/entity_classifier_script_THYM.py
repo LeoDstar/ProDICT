@@ -29,7 +29,7 @@ if str(module_path) not in sys.path:
 from entity_model_settings_THYM import *
 
 project_root = os.path.abspath(os.getcwd())
-output_dir = os.path.join(project_root, 'data', run_folder_name, 'data_frames')
+output_dir = os.path.join(project_root, 'data', run_folder_name)
 os.makedirs(output_dir, exist_ok=True)
 
 #####################
@@ -373,9 +373,9 @@ def model_fitting(target_training_df, target_ho_df, target_proteins, output_dire
         target_log_reg_model = mf.logistic_regression_ridge(
             target_training_fs, 
             hyperparameter_C, 
-            output_directory,
             TARGET_CLASS, 
-            classified_by=CLASSIFIED_BY
+            CLASSIFIED_BY,
+            output_directory,
             )
         
         # Get results
@@ -383,10 +383,9 @@ def model_fitting(target_training_df, target_ho_df, target_proteins, output_dire
             target_log_reg_model, 
             target_training_fs, 
             target_test_fs,  
-            output_directory,
             TARGET_CLASS, 
-            classified_by=CLASSIFIED_BY,
-            
+            CLASSIFIED_BY,
+            output_directory
         )
         
         # Classification scores

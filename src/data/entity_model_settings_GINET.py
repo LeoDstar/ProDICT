@@ -15,7 +15,7 @@ PREPROCESSED_FP_Z_SCORES = 'full_proteome_measures_z.tsv'
 METADATA_FILE = 'METADATA_PANCANCER_PAPER_final.xlsx'
 
 # Classification parameters
-TARGET_CLASS = ['THYM']  # Change this for different tumor types (e.g., ['BRCA'], ['LUAD'], etc.)
+TARGET_CLASS = ['GINET']  # Change this for different tumor types (e.g., ['BRCA'], ['LUAD'], etc.)
 CLASSIFIED_BY = 'code_oncotree'  # Column name for classification - default is 'code_oncotree'
 SAMPLES_COLUMN = 'Sample name'  # Column name for sample identifiers - default is 'Sample name'
 CELL_CONTENT_COLUMN = 'TCC_Bioinfo'  # Column name for tumor cell content - default is 'TCC_Bioinfo'

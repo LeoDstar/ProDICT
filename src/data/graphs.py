@@ -168,6 +168,6 @@ def plot_tcc_vs_probability(TCC_df: pd.DataFrame, probabilities_df: pd.DataFrame
     # export
 
     fig.write_html('/'.join([output_directory, 'TCC_probs_scatterplot.html']), include_plotlyjs=True)
-    fig.write_image('/'.join([output_directory, 'TCC_probs_scatterplt.png']))
-    print (f"Plot saved as: {output_directory}/TCC_probs_scatterplot.html and {output_directory}/TCC_probs_scatterplt.png")
+    #fig.write_image('/'.join([output_directory, 'TCC_probs_scatterplt.png']))
+    print (f"Plot saved as: {output_directory}/TCC_probs_scatterplot.html")
     return fig
