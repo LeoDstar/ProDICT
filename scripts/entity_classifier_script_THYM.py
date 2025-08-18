@@ -8,12 +8,11 @@ Command-line runnable version of the original Jupyter notebook
 ###############
 import sys
 import pandas as pd
-import numpy as np # type: ignore
+import numpy as np
 import warnings
 import logging
 import multiprocessing as mp
 import sys
-import os
 
 from datetime import datetime
 from pathlib import Path
@@ -26,11 +25,8 @@ module_path = project_root / "src" / "data"
 if str(module_path) not in sys.path:
     sys.path.append(str(module_path))
     
-from entity_model_settings_ANGS import *
+from entity_model_settings_THYM import *
 
-project_root = os.path.abspath(os.path.join(os.getcwd(),('..')))
-output_dir = os.path.join(project_root, 'data', run_folder_name, 'data_frames')
-os.makedirs(output_dir, exist_ok=True)
 
 #####################
 ### Logging Setup ###
@@ -150,7 +146,7 @@ def load_data(project_root, prep):
         print(f"  - {the_metadata_file}")
         sys.exit(1)
 
-def preprocess_data(input_quantifications, df_z_scores, input_metadata,prep):
+def preprocess_data(input_quantifications, df_z_scores, input_metadata, prep):
     """Preprocess all data"""
     print("="*80)
     print("Preprocessing data...")
@@ -226,7 +222,7 @@ def preprocess_data(input_quantifications, df_z_scores, input_metadata,prep):
     
     return initial_df, peptides_df_binary, z_scores_initial_df
 
-def split_data(initial_df, z_scores_initial_df, output_directory, prep):
+def split_data(initial_df, z_scores_initial_df, prep):
     """Split data into training and held-out sets"""
     print("="*80)
     print("Splitting data...")
@@ -238,8 +234,8 @@ def split_data(initial_df, z_scores_initial_df, output_directory, prep):
     # Removing samples not part of the Oncotree classification
     ml_initial_df = (
         initial_df
-        .pipe(prep.remove_class, cases_to_remove, CLASSIFIED_BY, output_directory)
-        .pipe(prep.remove_class, ['very low', 'missing'], 'TCC GROUP', output_directory)
+        .pipe(prep.remove_class, cases_to_remove, CLASSIFIED_BY)
+        .pipe(prep.remove_class, ['very low', 'missing'], 'TCC GROUP')
         .loc[lambda df: df['TCC GROUP'].notna()]
     )
 
@@ -250,7 +246,6 @@ def split_data(initial_df, z_scores_initial_df, output_directory, prep):
         split_size=SPLIT_SIZE, 
         classified_by=CLASSIFIED_BY, 
         export=True
-        output_directory=output_directory
     )
     
     # Z_scores dataset
@@ -288,7 +283,7 @@ def class_specific_workflow(training_df, held_out_df, z_scores_train_df, peptide
 
     return target_training_df, target_ho_df, target_z_scores_train_df
 
-def feature_selection(target_z_scores_train_df, output_directory, fs):
+def feature_selection(target_z_scores_train_df, fs):
     """Perform feature selection using ElasticNet"""
     print("="*80)
     print("Starting feature selection...")
@@ -325,11 +320,10 @@ def feature_selection(target_z_scores_train_df, output_directory, fs):
             n_splits=ELNET_N_SPLITS, 
             n_repeats=ELNET_N_REPEATS, 
             n_jobs=ELNET_N_JOBS, 
-            output_directory = output_directory
             export=True
         )
         
-        target_stats, target_proteins = fs.statistic_from_coefficients(target_cross_val_coeffs, TARGET_CLASS, output_directory)
+        target_stats, target_proteins = fs.statistic_from_coefficients(target_cross_val_coeffs, TARGET_CLASS)
         
     except Exception as e:
         print(f"Warning: Feature selection failed: {e}")
@@ -337,7 +331,7 @@ def feature_selection(target_z_scores_train_df, output_directory, fs):
     print(f"Selected {len(target_proteins)} protein features")
     return target_proteins
     
-def model_fitting(target_training_df, target_ho_df, target_proteins, output_directory,fs, mf):
+def model_fitting(target_training_df, target_ho_df, target_proteins, fs, mf):
     """Fit the final model and evaluate"""
     print("="*80)
     print("Starting model fitting...")
@@ -374,8 +368,7 @@ def model_fitting(target_training_df, target_ho_df, target_proteins, output_dire
             target_training_fs, 
             hyperparameter_C, 
             TARGET_CLASS, 
-            classified_by=CLASSIFIED_BY,
-            output_directory=None
+            classified_by=CLASSIFIED_BY
         )
         
         # Get results
@@ -384,8 +377,7 @@ def model_fitting(target_training_df, target_ho_df, target_proteins, output_dire
             target_training_fs, 
             target_test_fs,  # Use properly shaped test set
             TARGET_CLASS, 
-            classified_by=CLASSIFIED_BY,
-            output_directory=None
+            classified_by=CLASSIFIED_BY
         )
         
         # Classification scores
@@ -398,7 +390,7 @@ def model_fitting(target_training_df, target_ho_df, target_proteins, output_dire
         print(f"Error during model fitting: {e}")
         return None, None, None, None, None
 
-def generate_graphs(initial_df, test_target_scores, target_proteins, output_directory, grph):
+def generate_graphs(initial_df, test_target_scores, target_proteins, grph):
     """Generate and save graphs for results exploration"""
     print("="*80)
     print("Generating graphs...")
@@ -410,12 +402,11 @@ def generate_graphs(initial_df, test_target_scores, target_proteins, output_dire
         feature_columns=target_proteins, 
         color_column=CLASSIFIED_BY, 
         metadata_cols=[SAMPLES_COLUMN, CLASSIFIED_BY, 'TCC GROUP'],
-        n_neighbors=5,
-        output_directory
+        n_neighbors=5
     )
     
     # TCC vs Probability plot
-    TCC_plot = grph.plot_tcc_vs_probability(initial_df, test_target_scores, output_directory)
+    TCC_plot = grph.plot_tcc_vs_probability(initial_df, test_target_scores)
     
     return TCC_plot, UMAP_plot
 
@@ -462,7 +453,7 @@ def main():
     
     # Split data
     training_df, held_out_df, z_scores_train_df = split_data(
-        initial_df, z_scores_initial_df, output_dir, prep
+        initial_df, z_scores_initial_df, prep
     )
     
     # Class-specific workflow
@@ -471,13 +462,13 @@ def main():
     )
     
     # Feature selection
-    target_proteins = feature_selection(target_z_scores_train_df, output_dir, fs)
+    target_proteins = feature_selection(target_z_scores_train_df, fs)
     
     # Model fitting
-    model_results = model_fitting(target_training_df, target_ho_df, target_proteins, output_dir,fs, mf)
+    model_results = model_fitting(target_training_df, target_ho_df, target_proteins, fs, mf)
 
     # Generate graphs
-    generate_graphs(initial_df, model_results[4], target_proteins, output_dir ,grph)
+    generate_graphs(initial_df, model_results[4],target_proteins, grph)
 
     if model_results[0] is not None:
         print("=" * 80)

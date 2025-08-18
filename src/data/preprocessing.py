@@ -7,13 +7,7 @@ import os
 from sklearn.model_selection import train_test_split
 from entity_model_settings import run_folder_name
 
-
-
-### Paths ###
-project_root = os.path.abspath(os.getcwd())
-output_dir = os.path.join(project_root, 'data', 'data_output', run_folder_name, 'data_frames')
-os.makedirs(output_dir, exist_ok=True)
-
+#######################################################################################################################
 ### Functions ###
 
 def read_table_with_correct_sep(file_path):
@@ -89,7 +83,7 @@ def impute_normal_down_shift_distribution(unimputerd_dataframe:pd.DataFrame ,col
     
     return final_df
 
-def remove_class(df: pd.DataFrame, class_list: list, classified_by: str) -> pd.DataFrame:
+def remove_class(df: pd.DataFrame, class_list: list, classified_by: str, output_directory=output_directory) -> pd.DataFrame:
     """
     Remove rows from DataFrame that are unnecesary for training, and export the removed samples to a CSV file.
     Args:
@@ -104,14 +98,14 @@ def remove_class(df: pd.DataFrame, class_list: list, classified_by: str) -> pd.D
 
     class_name = '_'.join(class_list)
     removed_samples = df[df[classified_by].isin(class_list)]
-    removed_samples.to_excel(os.path.join(output_dir,f'removed_samples_{class_name}.xlsx'), engine='xlsxwriter', index=False)
+    removed_samples.to_excel(os.path.join(output_directory,f'removed_samples_{class_name}.xlsx'), engine='xlsxwriter', index=False)
 
     print(f"Removed samples: {len(removed_samples)}")
     print(f"Remaining samples: {len(modified_df)}")
         
     return modified_df.reset_index(drop=True)
 
-def data_split(df: pd.DataFrame, split_size=0.25, classified_by='code_oncotree', export=True) -> tuple[pd.DataFrame, pd.DataFrame]: 
+def data_split(df: pd.DataFrame, split_size=0.25, classified_by='code_oncotree', export=True, output_directory=output_directory) -> tuple[pd.DataFrame, pd.DataFrame]: 
     """
     Stratified split of the dataset into training and held-out sets, ensuring that each class has at least two samples. from scikit-learn
 
@@ -146,8 +140,8 @@ def data_split(df: pd.DataFrame, split_size=0.25, classified_by='code_oncotree',
     print(f"Held-out set samples: {len(held_out_indices)}")
     
     if export:
-        training_df_.to_excel(os.path.join(output_dir, 'initial_training_df.xlsx'), engine='xlsxwriter', index=False)
-        held_out_df.to_excel(os.path.join(output_dir, 'held_out_df.xlsx'), engine='xlsxwriter', index=False)
+        training_df_.to_excel(os.path.join(output_directory, 'initial_training_df.xlsx'), engine='xlsxwriter', index=False)
+        held_out_df.to_excel(os.path.join(output_directory, 'held_out_df.xlsx'), engine='xlsxwriter', index=False)
 
     return training_df_, held_out_df
 

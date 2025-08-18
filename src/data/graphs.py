@@ -10,16 +10,13 @@ from entity_model_settings import run_folder_name, target_class_name
 import warnings
 warnings.filterwarnings('ignore')
 
-### Paths ###
-project_root = os.path.abspath(os.getcwd())
-output_dir = os.path.join(project_root, 'data', 'data_output', run_folder_name, 'graphs')
-os.makedirs(output_dir, exist_ok=True)
-
 ###Functions###
 def create_umap_plot(df, feature_columns, n_components=3, color_column='code_oncotree', 
                        metadata_cols=['Sample name', 'code_oncotree', 'TCC'],
                        n_neighbors=15, min_dist=0.1,
-                       title=target_class_name):
+                       title=target_class_name,
+                       output_directory=None
+                       ):
     """
     Create a 3D UMAP visualization with Plotly
     
@@ -125,13 +122,13 @@ def create_umap_plot(df, feature_columns, n_components=3, color_column='code_onc
     )
 
 
-    file_name = os.path.join(output_dir,f'UMAP_of_class.html')   
+    file_name = os.path.join(output_directory,f'UMAP_of_class.html')   
     fig.write_html(file_name, include_plotlyjs=True)
     
     print(f"Plot saved as: {file_name}")
     return fig
 
-def plot_tcc_vs_probability(TCC_df: pd.DataFrame, probabilities_df: pd.DataFrame) -> px.scatter:
+def plot_tcc_vs_probability(TCC_df: pd.DataFrame, probabilities_df: pd.DataFrame, output_directory) -> px.scatter:
     """
     Create a scatter plot of TCC (y-axis) vs Probability (x-axis), matched on 'Sample name'. Exports to HTML and PNG.
 
@@ -167,7 +164,7 @@ def plot_tcc_vs_probability(TCC_df: pd.DataFrame, probabilities_df: pd.DataFrame
 
     # export
 
-    fig.write_html('/'.join([output_dir, 'TCC_probs_scatterplot.html']), include_plotlyjs=True)
-    fig.write_image('/'.join([output_dir, 'TCC_probs_scatterplt.png']))
-    print (f"Plot saved as: {output_dir}/TCC_probs_scatterplot.html and {output_dir}/TCC_probs_scatterplt.png")
+    fig.write_html('/'.join([output_directory, 'TCC_probs_scatterplot.html']), include_plotlyjs=True)
+    fig.write_image('/'.join([output_directory, 'TCC_probs_scatterplt.png']))
+    print (f"Plot saved as: {output_directory}/TCC_probs_scatterplot.html and {output_directory}/TCC_probs_scatterplt.png")
     return fig
