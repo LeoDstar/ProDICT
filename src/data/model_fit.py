@@ -1,21 +1,15 @@
 ### Dependencies ###
-import pandas as pd
-import numpy as np
+import pandas as pd # pyright: ignore[reportMissingModuleSource]
+import numpy as np # type: ignore
 import os
 import warnings
 
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import StratifiedKFold, GridSearchCV
-from sklearn.metrics import confusion_matrix, make_scorer, f1_score, matthews_corrcoef
-from joblib import dump
-from sklearn.exceptions import ConvergenceWarning
+from sklearn.linear_model import LogisticRegression # pyright: ignore[reportMissingModuleSource]
+from sklearn.model_selection import StratifiedKFold, GridSearchCV # pyright: ignore[reportMissingModuleSource]
+from sklearn.metrics import confusion_matrix, make_scorer, f1_score, matthews_corrcoef # pyright: ignore[reportMissingModuleSource]
+from joblib import dump # type: ignore
+from sklearn.exceptions import ConvergenceWarning # pyright: ignore[reportMissingModuleSource]
 from entity_model_settings import run_folder_name
-
-
-### Paths ###
-project_root = os.path.abspath(os.getcwd())
-output_dir = os.path.join(project_root, 'data', 'data_output', run_folder_name, 'model_fit')
-os.makedirs(output_dir, exist_ok=True)
 
 
 ### Functions ###
@@ -242,7 +236,7 @@ def classification_scores (calc_probs_df):
     return probabilities_df
 
 
-def logistic_regression_results (log_reg_model, df_train: pd.DataFrame, df_test: pd.DataFrame, true_class:list, classified_by:str ) -> tuple:  
+def logistic_regression_results (log_reg_model, df_train: pd.DataFrame, df_test: pd.DataFrame, true_class:list, classified_by:str, output_directory ) -> tuple:  
     """
     class_criteria: string that defines the classification criteria (i.e. 'Tissue_origin' or 'tissue_topology'). 'code_oncotree' is always included. 
     """
@@ -295,7 +289,7 @@ def logistic_regression_results (log_reg_model, df_train: pd.DataFrame, df_test:
     
     final_model_coefficients = pd.DataFrame(results)
     final_model_coefficients.columns = col_names
-    final_model_coefficients_path = os.path.join(output_dir, f'{class_name}_log_reg_coefficients.xlsx')
+    final_model_coefficients_path = os.path.join(output_directory, f'{class_name}_log_reg_coefficients.xlsx')
     final_model_coefficients.to_excel(final_model_coefficients_path, index=False, engine='xlsxwriter')
 
     ### Results of model fit ###
@@ -309,7 +303,7 @@ def logistic_regression_results (log_reg_model, df_train: pd.DataFrame, df_test:
     test_probabilities = df_test[['Sample name','code_oncotree' ,'Classifier']]
     test_probabilities.insert(3, value = log_reg_model.predict_proba(df_test.filter(items=log_reg_model.feature_names_in_)).T[1] , column = 'Probability')
 
-    test_probs_file = os.path.join(output_dir,f'test_{class_name}_probabilities.xlsx')
+    test_probs_file = os.path.join(output_directory,f'test_{class_name}_probabilities.xlsx')
     test_probabilities.to_excel(test_probs_file, index=False, engine='xlsxwriter')
 
     
@@ -317,13 +311,13 @@ def logistic_regression_results (log_reg_model, df_train: pd.DataFrame, df_test:
     train_probabilities.insert(3, value = log_reg_model.predict_proba(df_train.filter(items=log_reg_model.feature_names_in_)).T[1] , column = 'Probability')
     
 
-    train_probs_path = os.path.join(output_dir,f'train_{class_name}_probabilities.xlsx')
+    train_probs_path = os.path.join(output_directory,f'train_{class_name}_probabilities.xlsx')
     train_probabilities.to_excel(train_probs_path, index=False, engine='xlsxwriter')
 
     return (final_model_coefficients, train_probabilities , test_probabilities)  
 
 
-def logistic_regression_ridge(df: pd.DataFrame, C_:float, true_class:list, classified_by:str) -> LogisticRegression : #Define the hypeparameters for this entity
+def logistic_regression_ridge(df: pd.DataFrame, C_:float, true_class:list, classified_by:str, output_directory) -> LogisticRegression : #Define the hypeparameters for this entity
 
     """Logistic Regression, regularized with Ridge. 
     Input: 
@@ -352,7 +346,7 @@ def logistic_regression_ridge(df: pd.DataFrame, C_:float, true_class:list, class
     log_reg.fit(X_train, y_train)
     
     class_name = "_".join(true_class)
-    dump(log_reg, os.path.join(output_dir,f'{class_name}_log_reg_ridge_model.pkl'))
+    dump(log_reg, os.path.join(output_directory,f'{class_name}_log_reg_ridge_model.pkl'))
     print(f'Model saved as {class_name}_log_reg_ridge_model.pkl')
 
     return log_reg   

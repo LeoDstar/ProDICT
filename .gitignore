@@ -45,4 +45,10 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Piepeline generated files #
+#############################
 *.html
+classifier*.txt
+*_selected_features.txt
+*.pkl

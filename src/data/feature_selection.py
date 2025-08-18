@@ -19,11 +19,6 @@ from sklearn.exceptions import ConvergenceWarning
 from entity_model_settings import run_folder_name
 
 
-### Paths ###
-project_root = os.path.abspath(os.getcwd())
-output_dir = os.path.join(project_root, 'data', 'data_output', run_folder_name, 'feature_selection')
-os.makedirs(output_dir, exist_ok=True)
-
 
 ### Functions ###
 def binary_labeling(df: pd.DataFrame, classified_by: str, true_class: list ) -> pd.DataFrame:
@@ -221,6 +216,7 @@ def elnet_wrapper (df:pd.DataFrame,
                              n_splits=4, 
                              n_repeats=1, 
                              n_jobs=8,
+                             output_directory = None,
                              export=True) -> pd.DataFrame:
     
     """ 
@@ -263,13 +259,15 @@ def elnet_wrapper (df:pd.DataFrame,
 
     #Export
     if export:
-        df_concatenated.to_excel(os.path.join(output_dir, f'{tumor_type_name}_coefficients.xlsx'), engine='xlsxwriter', index=False)
-        print(f'DataFrame exported to: {os.path.join(output_dir,  f'{tumor_type_name}_coefficients.xlsx')}')
+        df_concatenated.to_excel(os.path.join(output_directory, f'{tumor_type_name}_coefficients.xlsx'), engine='xlsxwriter', index=False)
+        print(f'DataFrame exported to: {os.path.join(output_directory,  f'{tumor_type_name}_coefficients.xlsx')}')
 
     return (df_concatenated)
 
 
-def statistic_from_coefficients (Coefficients_df:pd.DataFrame, true_class: list):
+def statistic_from_coefficients (Coefficients_df:pd.DataFrame, 
+                                 true_class: list,
+                                 output_directory = output_directory):
     """ 
     Args: 
         Coefficients_df: DataFrame that contains all the coefficients of the cross folded Logistic Regression.
@@ -306,9 +304,9 @@ def statistic_from_coefficients (Coefficients_df:pd.DataFrame, true_class: list)
     ## EXPORTING ## 
     class_name = "_".join(true_class)
 
-    coefficients_stats.to_excel(os.path.join(output_dir, f'{class_name}_folds_stats.xlsx'), engine='xlsxwriter', index=True)
+    coefficients_stats.to_excel(os.path.join(output_directory, f'{class_name}_folds_stats.xlsx'), engine='xlsxwriter', index=True)
 
-    with open(os.path.join(output_dir,f'{class_name}_selected_features.txt'), 'w') as file:
+    with open(os.path.join(output_directory,f'{class_name}_selected_features.txt'), 'w') as file:
         for item in significant_proteins:
             file.write("%s\n" % item)
 
