@@ -28,7 +28,7 @@ if str(module_path) not in sys.path:
     
 from entity_model_settings_ANGS import *
 
-project_root = os.path.abspath(os.path.join(os.getcwd(),('..')))
+project_root = os.path.abspath(os.getcwd())
 output_dir = os.path.join(project_root, 'data', run_folder_name, 'data_frames')
 os.makedirs(output_dir, exist_ok=True)
 
@@ -133,7 +133,7 @@ def load_data(project_root, prep):
         input_metadata = pd.read_excel(the_metadata_file,
                                         usecols=['Sample name', 'code_oncotree', 'Tumor cell content', 'TCC_Bioinfo', 'TCC GROUP'],
                                         dtype={'Sample name': 'string', 'code_oncotree': 'string', 'Tumor cell content': 'float64', 'TCC_Bioinfo': 'float64', 'TCC GROUP': 'string'},
-                                        na_values=['', 'NA', 'NaN', 'nan', 'N/A', 'n/a', 'None', 'TBD'])
+                                        na_values=['', 'NA', 'NaN', 'nan', 'N/A', 'n/a', 'None', 'TBD', 'notavailable'])
 
         print("Data files loaded successfully.")
         print(f"Quantifications shape: {input_quantifications.shape}")
@@ -246,11 +246,11 @@ def split_data(initial_df, z_scores_initial_df, output_directory, prep):
 
     # Splitting dataset into training and held-out sets
     training_df, held_out_df = prep.data_split(
-        ml_initial_df, 
+        ml_initial_df,
+        output_directory=output_directory, 
         split_size=SPLIT_SIZE, 
         classified_by=CLASSIFIED_BY, 
-        export=True
-        output_directory=output_directory
+        export=True,
     )
     
     # Z_scores dataset
@@ -322,10 +322,10 @@ def feature_selection(target_z_scores_train_df, output_directory, fs):
             tumor_type_name=f'{class_name}_features', 
             l1_ratio=target_best_params.get('l1_ratio'), 
             C=target_best_params.get('C'), 
+            output_directory = output_directory,
             n_splits=ELNET_N_SPLITS, 
             n_repeats=ELNET_N_REPEATS, 
             n_jobs=ELNET_N_JOBS, 
-            output_directory = output_directory
             export=True
         )
         
@@ -361,7 +361,7 @@ def model_fitting(target_training_df, target_ho_df, target_proteins, output_dire
             classified_by=CLASSIFIED_BY
         )
         target_nested_hp = mf.nested_cv_hparameters_selection(target_nested_cv_results)
-        hyperparameter_C = pd.DataFrame(target_nested_hp).T.sort_values(by='avg', ascending=False).index.tolist()[0]
+        hyperparameter_C = pd.DataFrame(target_nested_hp).T.sort_values(by='count', ascending=False).index.tolist()[0]
         print(f"Selected hyperparameter C: {hyperparameter_C}")
     except Exception as e:
         print(f"Warning: Hyperparameter selection failed: {e}")
@@ -373,19 +373,20 @@ def model_fitting(target_training_df, target_ho_df, target_proteins, output_dire
         target_log_reg_model = mf.logistic_regression_ridge(
             target_training_fs, 
             hyperparameter_C, 
+            output_directory,
             TARGET_CLASS, 
-            classified_by=CLASSIFIED_BY,
-            output_directory=None
-        )
+            classified_by=CLASSIFIED_BY
+            )
         
         # Get results
         target_coefficients, target_train_probabilities, target_test_probabilities = mf.logistic_regression_results(
             target_log_reg_model, 
             target_training_fs, 
-            target_test_fs,  # Use properly shaped test set
+            target_test_fs,  
+            output_directory,
             TARGET_CLASS, 
             classified_by=CLASSIFIED_BY,
-            output_directory=None
+            
         )
         
         # Classification scores
@@ -407,12 +408,12 @@ def generate_graphs(initial_df, test_target_scores, target_proteins, output_dire
     # UMAP plot
     UMAP_plot = grph.create_umap_plot(
         df=initial_df, 
+        output_directory=output_directory,
         feature_columns=target_proteins, 
         color_column=CLASSIFIED_BY, 
         metadata_cols=[SAMPLES_COLUMN, CLASSIFIED_BY, 'TCC GROUP'],
         n_neighbors=5,
-        output_directory
-    )
+        )
     
     # TCC vs Probability plot
     TCC_plot = grph.plot_tcc_vs_probability(initial_df, test_target_scores, output_directory)
@@ -450,6 +451,7 @@ def main():
     
     # Setup paths and import modules
     project_root = setup_paths()
+    print(f'Expected output directory: {output_dir}')
     prep, fs, mf, grph = import_custom_modules()
     
     # Load data

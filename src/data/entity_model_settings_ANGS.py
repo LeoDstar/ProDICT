@@ -7,12 +7,12 @@ from datetime import datetime
 # Data file parameters
 PROCESSED_DATA_FOLDER = '2025.07.14_CJ_pancancer_334/'
 FOLDER_PATH = '/media/kusterlab/internal_projects/active/TOPAS/WP31/Playground/Retrospective_study/'
-METADATA_PATH = '/media/kusterlab/internal_projects/active/TOPAS/WP31/Playground/Retrospective_MTBs_Evaluation/'
+METADATA_PATH = '/media/kusterlab/internal_projects/active/TOPAS/WP31/Playground/LE_PROdict/Test_datasets_PROdict/'
 
 # File names
 PREPROCESSED_FP_INTENSITY = 'preprocessed_fp.csv'
 PREPROCESSED_FP_Z_SCORES = 'full_proteome_measures_z.tsv'
-METADATA_FILE = 'METADATA_PANCANCER_PAPER_336_CJ_corrected_with_pids.xlsx'
+METADATA_FILE = 'METADATA_PANCANCER_PAPER_final.xlsx'
 
 # Classification parameters
 TARGET_CLASS = ['ANGS']  # Change this for different tumor types (e.g., ['BRCA'], ['LUAD'], etc.)
@@ -28,14 +28,14 @@ HIGH_CONFIDENCE_THRESHOLD = 0.7  # Threshold for high confidence proteins
 
 # Feature selection parameters
 FEATURE_SELECTION_L1_RATIOS = [0.3,0.5,0.7]  # L1 ratios to test for ElasticNet
-FEATURE_SELECTION_C_VALUES = [0.1, 1]     # C values to test for ElasticNet
+FEATURE_SELECTION_C_VALUES = [1]     # C values to test for ElasticNet
 GRID_SEARCH_N_SPLITS = 3           # Number of splits for grid search
 
 ELNET_L1_RATIO = 0.5                     # fallback value L1 ratio for ElasticNet hyperparameter selection
 ELNET_C_VALUE = 1                        # fallback value C value for ElasticNet hyperparameter selection
 ELNET_N_SPLITS = 3                       # Number of splits for cross-validation
 ELNET_N_REPEATS = 67                     # Number of repeats for cross-validation
-ELNET_N_JOBS = 16                        # Number of parallel jobs
+ELNET_N_JOBS = 12                        # Number of parallel jobs
 
 # Model fitting parameters
 NESTED_CV_RANDOM_STATE_TRIES = 10    # Number of random state tries for nested CV

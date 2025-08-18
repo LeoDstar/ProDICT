@@ -213,10 +213,10 @@ def elnet_wrapper (df:pd.DataFrame,
                              tumor_type_name:str,
                              l1_ratio:float, 
                              C:float,
+                             output_directory:str,
                              n_splits=4, 
                              n_repeats=1, 
                              n_jobs=8,
-                             output_directory = None,
                              export=True) -> pd.DataFrame:
     
     """ 
@@ -267,7 +267,7 @@ def elnet_wrapper (df:pd.DataFrame,
 
 def statistic_from_coefficients (Coefficients_df:pd.DataFrame, 
                                  true_class: list,
-                                 output_directory = output_directory):
+                                 output_directory:str):
     """ 
     Args: 
         Coefficients_df: DataFrame that contains all the coefficients of the cross folded Logistic Regression.
