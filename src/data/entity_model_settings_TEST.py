@@ -5,17 +5,17 @@ from datetime import datetime
 
 
 # Data file parameters
-PROCESSED_DATA_FOLDER = '2025.07.14_CJ_pancancer_334/'
-FOLDER_PATH = '/media/kusterlab/internal_projects/active/TOPAS/WP31/Playground/Retrospective_study/'
+PROCESSED_DATA_FOLDER = 'Test_datasets_PROdict/'
+FOLDER_PATH = '/media/kusterlab/internal_projects/active/TOPAS/WP31/Playground/LE_PROdict/'
 METADATA_PATH = '/media/kusterlab/internal_projects/active/TOPAS/WP31/Playground/LE_PROdict/Test_datasets_PROdict/'
 
 # File names
-PREPROCESSED_FP_INTENSITY = 'preprocessed_fp.csv'
-PREPROCESSED_FP_Z_SCORES = 'full_proteome_measures_z.tsv'
+PREPROCESSED_FP_INTENSITY = 'input_quantifications_small.csv'
+PREPROCESSED_FP_Z_SCORES = 'df_z_scores_small.csv'
 METADATA_FILE = 'METADATA_PANCANCER_PAPER_final.xlsx'
 
 # Classification parameters
-TARGET_CLASS = ['THYM']  # Change this for different tumor types (e.g., ['BRCA'], ['LUAD'], etc.)
+TARGET_CLASS = ['CHDM']  # Change this for different tumor types (e.g., ['BRCA'], ['LUAD'], etc.)
 CLASSIFIED_BY = 'code_oncotree'  # Column name for classification - default is 'code_oncotree'
 SAMPLES_COLUMN = 'Sample name'  # Column name for sample identifiers - default is 'Sample name'
 CELL_CONTENT_COLUMN = 'TCC_Bioinfo'  # Column name for tumor cell content - default is 'TCC_Bioinfo'
@@ -23,7 +23,7 @@ CELL_CONTENT_COLUMN = 'TCC_Bioinfo'  # Column name for tumor cell content - defa
 # Data processing parameters
 NOS_CASES = ['CUPNOS', 'ADNOS', 'SARCNOS', 'SCCNOS', 'SOLIDNOS', 'RCSNOS', 'GCTNOS']
 OTHER_CASES = ['missing'] # Additional classes to remove - Default is 'missing'
-SPLIT_SIZE = 0.3  # Proportion for held-out set
+SPLIT_SIZE = 0.30  # Proportion for held-out set
 HIGH_CONFIDENCE_THRESHOLD = 0.7  # Threshold for high confidence proteins
 
 # Feature selection parameters

@@ -26,7 +26,7 @@ module_path = project_root / "src" / "data"
 if str(module_path) not in sys.path:
     sys.path.append(str(module_path))
     
-from entity_model_settings_ANGS import *
+from entity_model_settings_CHS import *
 
 project_root = os.path.abspath(os.getcwd())
 output_dir = os.path.join(project_root, 'data', run_folder_name)
