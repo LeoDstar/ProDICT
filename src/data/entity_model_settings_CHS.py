@@ -23,7 +23,7 @@ CELL_CONTENT_COLUMN = 'TCC_Bioinfo'  # Column name for tumor cell content - defa
 # Data processing parameters
 NOS_CASES = ['CUPNOS', 'ADNOS', 'SARCNOS', 'SCCNOS', 'SOLIDNOS', 'RCSNOS', 'GCTNOS']
 OTHER_CASES = ['missing'] # Additional classes to remove - Default is 'missing'
-SPLIT_SIZE = 0.3  # Proportion for held-out set
+SPLIT_SIZE = 0.25  # Proportion for held-out set
 HIGH_CONFIDENCE_THRESHOLD = 0.7  # Threshold for high confidence proteins
 
 # Feature selection parameters
