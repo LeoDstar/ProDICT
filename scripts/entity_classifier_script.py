@@ -245,7 +245,7 @@ def split_data(initial_df, z_scores_initial_df, prep):
         ml_initial_df, 
         split_size=SPLIT_SIZE, 
         classified_by=CLASSIFIED_BY, 
-        export=True
+        export=False
     )
     
     # Z_scores dataset
