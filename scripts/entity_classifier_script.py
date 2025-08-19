@@ -249,7 +249,9 @@ def split_data(initial_df, z_scores_initial_df, prep):
     )
     
     # Z_scores dataset
-    z_scores_train_df = z_scores_initial_df.iloc[training_df.index]
+    z_scores_train_df = z_scores_initial_df[z_scores_initial_df['Sample name'].isin(training_df['Sample name'])]
+
+    print(f"Samples match between Z-score and intesntity dataset: {set(training_df['Sample name']) == set(z_scores_train_df['Sample name'])}")
     
     print(f"Training set size: {training_df.shape}")
     print(f"Held-out set size: {held_out_df.shape}")
