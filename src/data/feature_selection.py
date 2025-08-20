@@ -117,7 +117,7 @@ def hparameter_grid_search(df: pd.DataFrame, n_splits: int, l1_ratio_list: list,
         logistic_regression, param_grid, 
         cv=stratified_kfold,
         scoring=scorer, 
-        n_jobs=8, 
+        n_jobs=12, 
         return_train_score=True
     )
 
