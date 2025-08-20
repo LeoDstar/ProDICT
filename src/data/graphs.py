@@ -17,7 +17,7 @@ def create_umap_plot(df,
                      n_components=3, 
                      color_column='code_oncotree', 
                      metadata_cols=['Sample name', 'code_oncotree', 'TCC'],
-                     n_neighbors=15, min_dist=0.1,
+                     n_neighbors=9, min_dist=0.1,
                      title=target_class_name, 
                        ):
     """
