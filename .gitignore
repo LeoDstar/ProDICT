@@ -54,3 +54,4 @@ classifier*.txt
 *.pkl
 data/DSRCT_250819_results/old_run_classifier_output_20250819_125741.txt
 data/PANET_250820_results/old_run_classifier_output_20250819_160300.txt
+notebooks/UMAP_generator.ipynb
