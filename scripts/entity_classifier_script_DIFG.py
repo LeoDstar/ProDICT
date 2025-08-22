@@ -133,7 +133,7 @@ def load_data(project_root, prep):
         input_metadata = pd.read_excel(the_metadata_file,
                                         usecols=['Sample name', 'code_oncotree', 'Tumor cell content', 'TCC_Bioinfo', 'TCC GROUP'],
                                         dtype={'Sample name': 'string', 'code_oncotree': 'string', 'Tumor cell content': 'float64', 'TCC_Bioinfo': 'float64', 'TCC GROUP': 'string'},
-                                        na_values=['', 'NA', 'NaN', 'nan', 'N/A', 'n/a', 'None', 'TBD', 'notavailable'])
+                                        na_values=['', 'NA', 'NaN', 'nan', 'N/A', 'n/a', 'None', 'TBD', 'notavailable', 'missing'])
 
         print("Data files loaded successfully.")
         print(f"Quantifications shape: {input_quantifications.shape}")
