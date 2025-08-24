@@ -35,7 +35,7 @@ ELNET_L1_RATIO = 0.5                     # fallback value L1 ratio for ElasticNe
 ELNET_C_VALUE = 1                        # fallback value C value for ElasticNet hyperparameter selection
 ELNET_N_SPLITS = 3                       # Number of splits for cross-validation
 ELNET_N_REPEATS = 67                     # Number of repeats for cross-validation
-ELNET_N_JOBS = 12                        # Number of parallel jobs
+ELNET_N_JOBS = 16                        # Number of parallel jobs
 
 # Model fitting parameters
 NESTED_CV_RANDOM_STATE_TRIES = 10    # Number of random state tries for nested CV
