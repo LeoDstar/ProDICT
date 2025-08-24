@@ -163,7 +163,7 @@ def preprocess_data(input_quantifications, df_z_scores, input_metadata,prep):
         input_quantifications.iloc[:, int(input_quantifications.shape[1]/2):].T
     )
     proteins_quant = input_quantifications.iloc[:, :int(input_quantifications.shape[1]/2)].T
-    print(f"***proteins quantifications columns: {proteins_quant.iloc[:,:30].columns.tolist()}")
+    print(f"***proteins quantifications columns: {proteins_quant.iloc[:,:10].columns.tolist()}")
     # Imputation with configurable parameters
     prot_quant_imputed = prep.impute_normal_down_shift_distribution(
         proteins_quant, 
@@ -175,17 +175,17 @@ def preprocess_data(input_quantifications, df_z_scores, input_metadata,prep):
     na_columns_true = na_columns[na_columns].index.tolist()
     print("Proteins with empty values:", na_columns_true)
 
-    print(f"***Input after imputation columns: {prot_quant_imputed.iloc[:,:30].columns.tolist()}")
+    print(f"***Input after imputation columns: {prot_quant_imputed.iloc[:,:10].columns.tolist()}")
     # Cleaning sample names
     prot_quant_imputed.reset_index(inplace=True)
     prot_quant_imputed.rename(columns={'index': SAMPLES_COLUMN}, inplace=True)
-    prot_quant_imputed[SAMPLES_COLUMN] = prot_quant_imputed[SAMPLES_COLUMN].str.replace('pat_', '')
+    prot_quant_imputed[SAMPLES_COLUMN] = prot_quant_imputed[SAMPLES_COLUMN].str.replace('pat_', '').str.strip()
     
     # Dataset with protein intensities and metadata
     input_metadata['TCC'] = input_metadata['TCC_Bioinfo'].fillna(input_metadata['Tumor cell content'])
-    samples_metadata = input_metadata[[SAMPLES_COLUMN, CLASSIFIED_BY, 'TCC', 'TCC GROUP']]
-    
-    initial_df = samples_metadata.merge(prot_quant_imputed, left_on=SAMPLES_COLUMN, right_on=SAMPLES_COLUMN)
+    samples_metadata = input_metadata[[SAMPLES_COLUMN, CLASSIFIED_BY, 'TCC', 'TCC GROUP']]  
+    samples_metadata[SAMPLES_COLUMN] = samples_metadata[SAMPLES_COLUMN].str.strip()
+    initial_df = samples_metadata.merge(prot_quant_imputed, on=SAMPLES_COLUMN, how='left')
     
     # Peptides quantification to binary dataset
     peptides_df_binary = pd.DataFrame(
@@ -195,6 +195,7 @@ def preprocess_data(input_quantifications, df_z_scores, input_metadata,prep):
     )
     peptides_df_binary.reset_index(inplace=True)
     peptides_df_binary.replace('Identification metadata ', '', regex=True, inplace=True)
+    peptides_df_binary['index'] = peptides_df_binary['index'].str.strip()
     peptides_df_binary = samples_metadata.merge(peptides_df_binary, left_on=SAMPLES_COLUMN, right_on='index')
     peptides_df_binary.drop('index', axis=1, inplace=True)
     
@@ -219,8 +220,8 @@ def preprocess_data(input_quantifications, df_z_scores, input_metadata,prep):
     )
     z_scores_imputed.reset_index(inplace=True)
     z_scores_imputed.rename(columns={'Gene names': SAMPLES_COLUMN}, inplace=True)
-
-    z_scores_initial_df = samples_metadata.merge(z_scores_imputed, left_on=SAMPLES_COLUMN, right_on=SAMPLES_COLUMN)
+    z_scores_imputed[SAMPLES_COLUMN] = z_scores_imputed[SAMPLES_COLUMN].str.strip()
+    z_scores_initial_df = samples_metadata.merge(z_scores_imputed, on=SAMPLES_COLUMN, how='left')
     
     print("Z-scores initial dataframe shape:", z_scores_initial_df.shape)
     
@@ -239,8 +240,7 @@ def split_data(initial_df, z_scores_initial_df, output_directory, prep):
     ml_initial_df = (
         initial_df
         .pipe(prep.remove_class, cases_to_remove, CLASSIFIED_BY, output_directory)
-        .pipe(prep.remove_class, ['very low', 'missing'], 'TCC GROUP', output_directory)
-        .loc[lambda df: df['TCC GROUP'].notna()]
+        .pipe(prep.remove_class, ['very low', 'notdefined'], 'TCC GROUP', output_directory)
     )
 
 
@@ -250,7 +250,7 @@ def split_data(initial_df, z_scores_initial_df, output_directory, prep):
         output_directory=output_directory, 
         split_size=SPLIT_SIZE, 
         classified_by=CLASSIFIED_BY, 
-        export=False,
+        export=True,
     )
     
     # Z_scores dataset
