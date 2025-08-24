@@ -5,13 +5,13 @@ from datetime import datetime
 
 
 # Data file parameters
-PROCESSED_DATA_FOLDER = 'Test_datasets_PROdict/'
-FOLDER_PATH = '/media/kusterlab/internal_projects/active/TOPAS/WP31/Playground/LE_PROdict/'
+PROCESSED_DATA_FOLDER = '2025.08.06_CJ_paper_final/'
+FOLDER_PATH = '/media/kusterlab/internal_projects/active/TOPAS/WP31/Playground/Retrospective_study/'
 METADATA_PATH = '/media/kusterlab/internal_projects/active/TOPAS/WP31/Playground/LE_PROdict/paper_freeze_versions_22_08/'
 
 # File names
-PREPROCESSED_FP_INTENSITY = 'input_quantifications_small.csv'
-PREPROCESSED_FP_Z_SCORES = 'df_z_scores_small.csv'
+PREPROCESSED_FP_INTENSITY = 'preprocessed_fp.csv'
+PREPROCESSED_FP_Z_SCORES = 'full_proteome_measures_z.tsv'
 METADATA_FILE = 'METADATA_PANCANCER_PAPER_final.xlsx'
 
 # Classification parameters
@@ -28,7 +28,7 @@ HIGH_CONFIDENCE_THRESHOLD = 0.7  # Threshold for high confidence proteins
 
 # Feature selection parameters
 FEATURE_SELECTION_L1_RATIOS = [0.3,0.5]  # L1 ratios to test for ElasticNet
-FEATURE_SELECTION_C_VALUES = [1]     # C values to test for ElasticNet
+FEATURE_SELECTION_C_VALUES = [1, 5, 10]     # C values to test for ElasticNet
 GRID_SEARCH_N_SPLITS = 3           # Number of splits for grid search
 
 ELNET_L1_RATIO = 0.5                     # fallback value L1 ratio for ElasticNet hyperparameter selection
