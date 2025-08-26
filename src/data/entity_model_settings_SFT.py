@@ -28,7 +28,7 @@ HIGH_CONFIDENCE_THRESHOLD = 0.7  # Threshold for high confidence proteins
 
 # Feature selection parameters
 FEATURE_SELECTION_L1_RATIOS = [0.3,0.5]  # L1 ratios to test for ElasticNet
-FEATURE_SELECTION_C_VALUES = [1, 5, 10]     # C values to test for ElasticNet
+FEATURE_SELECTION_C_VALUES = [2,3.5,5]     # C values to test for ElasticNet
 GRID_SEARCH_N_SPLITS = 3           # Number of splits for grid search
 
 ELNET_L1_RATIO = 0.5                     # fallback value L1 ratio for ElasticNet hyperparameter selection
