@@ -15,7 +15,7 @@ PREPROCESSED_FP_Z_SCORES = 'full_proteome_measures_z.tsv'
 METADATA_FILE = 'METADATA_PANCANCER_PAPER_final.xlsx'
 
 # Classification parameters
-TARGET_CLASS = ['MPNST']  # Change this for different tumor types (e.g., ['BRCA'], ['LUAD'], etc.)
+TARGET_CLASS = ['MEL', 'UM']  # Change this for different tumor types (e.g., ['BRCA'], ['LUAD'], etc.)
 CLASSIFIED_BY = 'code_oncotree'  # Column name for classification - default is 'code_oncotree'
 SAMPLES_COLUMN = 'Sample name'  # Column name for sample identifiers - default is 'Sample name'
 CELL_CONTENT_COLUMN = 'TCC_Bioinfo'  # Column name for tumor cell content - default is 'TCC_Bioinfo'
@@ -28,7 +28,7 @@ HIGH_CONFIDENCE_THRESHOLD = 0.7  # Threshold for high confidence proteins
 
 # Feature selection parameters
 FEATURE_SELECTION_L1_RATIOS = [0.3,0.5]  # L1 ratios to test for ElasticNet
-FEATURE_SELECTION_C_VALUES = [2, 3, 4]     # C values to test for ElasticNet
+FEATURE_SELECTION_C_VALUES = [2,3,4]     # C values to test for ElasticNet
 GRID_SEARCH_N_SPLITS = 3           # Number of splits for grid search
 
 ELNET_L1_RATIO = 0.5                     # fallback value L1 ratio for ElasticNet hyperparameter selection
