@@ -2,6 +2,10 @@
 
 echo "Starting scripts at $(date)"
 
+python scripts/entity_classifier_script_BRCA.py
+python scripts/entity_classifier_script_IHCH.py
+python scripts/entity_classifier_script_ASPS.py
+python scripts/entity_classifier_script_DIFG.py
 python scripts/entity_classifier_script_PLEMESO_PEMESO.py
 python scripts/entity_classifier_script_UM.py
 python scripts/entity_classifier_script_MEL.py
