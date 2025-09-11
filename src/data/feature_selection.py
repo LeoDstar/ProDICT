@@ -117,7 +117,7 @@ def hparameter_grid_search(df: pd.DataFrame, n_splits: int, l1_ratio_list: list,
         logistic_regression, param_grid, 
         cv=stratified_kfold,
         scoring=scorer, 
-        n_jobs=12, 
+        n_jobs=16, 
         return_train_score=True
     )
 
@@ -216,7 +216,7 @@ def elnet_wrapper (df:pd.DataFrame,
                              output_directory:str,
                              n_splits=4, 
                              n_repeats=1, 
-                             n_jobs=8,
+                             n_jobs=16,
                              export=True) -> pd.DataFrame:
     
     """ 
