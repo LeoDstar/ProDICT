@@ -7,7 +7,7 @@ from datetime import datetime
 # Data file parameters
 PROCESSED_DATA_FOLDER = 'Test_datasets_PROdict/'
 FOLDER_PATH = '/media/kusterlab/internal_projects/active/TOPAS/WP31/Playground/LE_PROdict/'
-METADATA_PATH = '/media/kusterlab/internal_projects/active/TOPAS/WP31/Playground/LE_PROdict/paper_freeze_versions_22_08/'
+METADATA_PATH = '/media/kusterlab/internal_projects/active/TOPAS/WP31/Playground/LE_PROdict/paper_data/'
 
 # File names
 PREPROCESSED_FP_INTENSITY = 'input_quantifications_small.csv'
