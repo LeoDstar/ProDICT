@@ -5,7 +5,7 @@ from datetime import datetime
 
 
 # Data file parameters
-PROCESSED_DATA_FOLDER = '2025.08.06_CJ_paper_final/'
+PROCESSED_DATA_FOLDER = '2025.09.06_CJ_paper_final/'
 FOLDER_PATH = '/media/kusterlab/internal_projects/active/TOPAS/WP31/Playground/Retrospective_study/'
 METADATA_PATH = '/media/kusterlab/internal_projects/active/TOPAS/WP31/Playground/LE_PROdict/paper_data/'
 
