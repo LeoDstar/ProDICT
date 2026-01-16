@@ -12,28 +12,30 @@ import numpy as np  # type: ignore
 import warnings
 import logging
 import multiprocessing as mp
-import os
 
 from datetime import datetime
 from pathlib import Path
 
-current_script_path = Path(__file__).resolve()
-project_root = current_script_path.parent.parent
-module_path = project_root / "src"
-if str(module_path) not in sys.path:
-    sys.path.append(str(module_path))
+import prodict.preprocessing as prep
+import prodict.feature_selection as fs
+import prodict.model_fit as mf
+import prodict.graphs as grph
+import prodict.config as cfg
 
-from entity_model_settings_ACC import *
+# Importing settings from YAML configuration for the model
+cfg.load_config(Path("data/entity_model_settings.yaml"))
+from prodict.config import *
 
-project_root = os.path.abspath(os.getcwd())
-output_dir = os.path.join(project_root, 'data', run_folder_name) # type: ignore
-os.makedirs(output_dir, exist_ok=True)
+project_root = Path.cwd()
+output_dir = project_root / "data" / cfg.RUN_FOLDER_NAME # type: ignore
+output_dir.mkdir(parents=True, exist_ok=True)
 
 ###################
 # Logging Setup ###
 ###################
 
-log_filename = f"classifier_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+log_filename = output_dir / f"classifier_log_{timestamp}.log"
 logging.basicConfig(
     level=logging.WARNING,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -70,12 +72,14 @@ class TeeOutput:
     def close(self):
         self.log_file.close()
 
-output_filename = f"classifier_output_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+
+output_filename = output_dir / f"classifier_output_{timestamp}.txt"
 tee_output = TeeOutput(output_filename)
 
-#################
-### Functions ###
-#################
+#############
+# Functions #
+#############
+
 
 def setup_paths():
     """Setup module paths for imports"""
@@ -89,6 +93,7 @@ def setup_paths():
         sys.path.append(module_path)
 
     return project_root
+
 
 def import_custom_modules():
     """Import custom modules with error handling"""
@@ -107,7 +112,8 @@ def import_custom_modules():
         print("- model_fit.py")
         sys.exit(1)
 
-def load_data(project_root, prep):
+
+def load_data():
     """Load all required data files"""
     print("="*80)
     print("Loading data files...")
@@ -147,7 +153,8 @@ def load_data(project_root, prep):
         print(f"  - {the_metadata_file}")
         sys.exit(1)
 
-def preprocess_data(input_quantifications, df_z_scores, input_metadata,prep):
+
+def preprocess_data(input_quantifications, df_z_scores, input_metadata):
     """Preprocess all data"""
     print("="*80)
     print("Preprocessing data...")
@@ -224,7 +231,8 @@ def preprocess_data(input_quantifications, df_z_scores, input_metadata,prep):
 
     return initial_df, peptides_df_binary, z_scores_initial_df
 
-def split_data(initial_df, z_scores_initial_df, output_directory, prep):
+
+def split_data(initial_df, z_scores_initial_df, output_directory):
     """Split data into training and held-out sets"""
     print("="*80)
     print("Splitting data...")
@@ -261,7 +269,8 @@ def split_data(initial_df, z_scores_initial_df, output_directory, prep):
 
     return training_df, held_out_df, z_scores_train_df
 
-def class_specific_workflow(training_df, held_out_df, z_scores_train_df, peptides_df_binary, fs, mf):
+
+def class_specific_workflow(training_df, held_out_df, z_scores_train_df, peptides_df_binary):
     """Execute class-specific workflow for specified classification"""
     print("="*80)
     print(f"Starting class-specific workflow for {TARGET_CLASS}...")
@@ -287,7 +296,8 @@ def class_specific_workflow(training_df, held_out_df, z_scores_train_df, peptide
 
     return target_training_df, target_ho_df, target_z_scores_train_df
 
-def feature_selection(target_z_scores_train_df, output_directory, fs):
+
+def feature_selection(target_z_scores_train_df, output_directory):
     """Perform feature selection using ElasticNet"""
     print("="*80)
     print("Starting feature selection...")
@@ -336,7 +346,8 @@ def feature_selection(target_z_scores_train_df, output_directory, fs):
     print(f"Selected {len(target_proteins)} protein features")
     return target_proteins
 
-def model_fitting(target_training_df, target_ho_df, target_proteins, output_directory,fs, mf):
+
+def model_fitting(target_training_df, target_ho_df, target_proteins, output_directory):
     """Fit the final model and evaluate"""
     print("="*80)
     print("Starting model fitting...")
@@ -397,7 +408,8 @@ def model_fitting(target_training_df, target_ho_df, target_proteins, output_dire
         print(f"Error during model fitting: {e}")
         return None, None, None, None, None
 
-def generate_graphs(initial_df, test_target_scores, target_proteins, output_directory, grph):
+
+def generate_graphs(initial_df, test_target_scores, target_proteins, output_directory):
     """Generate and save graphs for results exploration"""
     print("="*80)
     print("Generating graphs...")
@@ -418,6 +430,7 @@ def generate_graphs(initial_df, test_target_scores, target_proteins, output_dire
 
     return TCC_plot, UMAP_plot
 
+
 def print_configuration():
     """Print current configuration settings"""
     print("=" * 80)
@@ -434,9 +447,10 @@ def print_configuration():
     print("=" * 80)
 
 
-###############################
-### Main Execution Function ###
-###############################
+###########################
+# Main Execution Function #
+###########################
+
 
 def main():
     """Main execution function"""
@@ -450,7 +464,7 @@ def main():
     # Setup paths and import modules
     project_root = setup_paths()
     print(f'Expected output directory: {output_dir}')
-    prep, fs, mf, grph = import_custom_modules()
+    #prep, fs, mf, grph = import_custom_modules()
 
     # Load data
     input_quantifications, df_z_scores, input_metadata = load_data(project_root, prep)
@@ -491,6 +505,7 @@ def main():
         print("=" * 80)
 
     return model_results
+
 
 if __name__ == "__main__":
     original_stdout = sys.stdout
