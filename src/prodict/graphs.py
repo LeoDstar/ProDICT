@@ -6,23 +6,25 @@ import numpy as np
 import umap
 
 from sklearn.preprocessing import StandardScaler
-from entity_model_settings import run_folder_name, target_class_name
+
 import warnings
 warnings.filterwarnings('ignore')
 
-###Functions###
-def create_umap_plot(df, 
+###Functions### #type: ignore
+
+
+def create_umap_plot(df,
                      feature_columns,
-                     output_directory: str, 
-                     n_components=3, 
-                     color_column='code_oncotree', 
+                     output_directory: str,
+                     n_components=3,
+                     color_column='code_oncotree',
                      metadata_cols=['Sample name', 'code_oncotree', 'TCC'],
                      n_neighbors=9, min_dist=0.1,
-                     title=target_class_name, 
+                     title=str,
                        ):
     """
     Create a 3D UMAP visualization with Plotly
-    
+
     Parameters:
         df : pandas.DataFrame
             Input dataframe
@@ -38,27 +40,25 @@ def create_umap_plot(df,
             UMAP parameter for minimum distance (default: 0.1)
         title : str
             Plot title (default: "3D UMAP Visualization")
-        
+
     Returns:
 
     plotly.graph_objects.Figure
         The 3D UMAP plot figure
     """
-    
-     
+
     # Filter and prepare data
     print(f"Original dataframe shape: {df.shape}")
-    
+
     # Select feature columns
     feature_data = df[feature_columns].copy()
     print(f"Feature data shape: {feature_data.shape}")
-    
-    
+
     # Standardize features
     print("Standardizing features...")
     scaler = StandardScaler()
     feature_data_scaled = scaler.fit_transform(feature_data)
-    
+
     # Apply UMAP
     print("Applying UMAP...")
     umap_model = umap.UMAP(
@@ -68,9 +68,9 @@ def create_umap_plot(df,
         random_state=93,
         verbose=True
     )
-    
+
     embedding_3d = umap_model.fit_transform(feature_data_scaled)
-    
+
     # Prepare data for plotting
     df_plot = df.copy()
     df_plot['UMAP_1'] = embedding_3d[:, 0]
@@ -78,13 +78,11 @@ def create_umap_plot(df,
     df_plot['UMAP_3'] = embedding_3d[:, 2]
     df_plot[metadata_cols] = df_plot[metadata_cols]
 
-    
-    
     # Get unique colors for each category
     unique_categories = df_plot[color_column].unique()
     n_categories = len(unique_categories)
     print(f"Number of unique categories in {color_column}: {n_categories}")
-    
+
     fig = px.scatter_3d(
         df_plot,
         x='UMAP_1',
@@ -92,13 +90,13 @@ def create_umap_plot(df,
         z='UMAP_3',
         color=color_column,
         hover_data={col: True for col in metadata_cols},
-        title=target_class_name+'_UMAP Visualization',
+        title='UMAP Visualization',
         opacity=0.7
     )
-    
+
     # Update hover template for cleaner display
     fig.update_traces(
-        hovertemplate='<br>'.join([f'{col}: %{{customdata[{i}]}}' 
+        hovertemplate='<br>'.join([f'{col}: %{{customdata[{i}]}}'
                                     for i, col in enumerate(metadata_cols)]) + '<extra></extra>'
     )
 
@@ -125,11 +123,12 @@ def create_umap_plot(df,
     )
 
 
-    file_name = os.path.join(output_directory,f'UMAP_of_class.html')   
+    file_name = os.path.join(output_directory,f'UMAP_of_class.html')
     fig.write_html(file_name, include_plotlyjs=True)
-    
+
     print(f"Plot saved as: {file_name}")
     return fig
+
 
 def plot_tcc_vs_probability(TCC_df: pd.DataFrame, probabilities_df: pd.DataFrame, output_directory: str) -> px.scatter:
     """
@@ -144,11 +143,11 @@ def plot_tcc_vs_probability(TCC_df: pd.DataFrame, probabilities_df: pd.DataFrame
         Must contain columns ['Sample name', 'Probability'].
 
     """
-    
+
     # merge on 'Sample name'
     merged_df = probabilities_df.merge(
-        TCC_df[['Sample name', 'TCC']], 
-        on='Sample name', 
+        TCC_df[['Sample name', 'TCC']],
+        on='Sample name',
         how='inner'
     )
 
@@ -168,6 +167,6 @@ def plot_tcc_vs_probability(TCC_df: pd.DataFrame, probabilities_df: pd.DataFrame
     # export
 
     fig.write_html('/'.join([output_directory, 'TCC_probs_scatterplot.html']), include_plotlyjs=True)
-    #fig.write_image('/'.join([output_directory, 'TCC_probs_scatterplt.png']))
-    print (f"Plot saved as: {output_directory}/TCC_probs_scatterplot.html")
+    # fig.write_image('/'.join([output_directory, 'TCC_probs_scatterplt.png']))
+    print(f"Plot saved as: {output_directory}/TCC_probs_scatterplot.html")
     return fig

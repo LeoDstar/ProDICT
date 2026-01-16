@@ -23,13 +23,16 @@ import prodict.graphs as grph
 import prodict.config as cfg
 
 # Importing settings from YAML configuration for the model
-cfg.load_config(Path("data/entity_model_settings.yaml"))
-from prodict.config import *
+PROJECT_ROOT = Path(__file__).resolve().parents[2]  # .../ProDICT
 
-project_root = Path.cwd()
-output_dir = project_root / "data" / cfg.RUN_FOLDER_NAME # type: ignore
+# Load configuration (no CWD dependence)
+CONFIG_PATH = PROJECT_ROOT / "data" / "small_data_model_settings.yaml"
+cfg.load_config(CONFIG_PATH)
+
+# Derive output directory consistently
+output_dir = PROJECT_ROOT / "data" / cfg.RUN_FOLDER_NAME
 output_dir.mkdir(parents=True, exist_ok=True)
-
+from prodict.config import *
 ###################
 # Logging Setup ###
 ###################
@@ -462,36 +465,35 @@ def main():
     print_configuration()
 
     # Setup paths and import modules
-    project_root = setup_paths()
     print(f'Expected output directory: {output_dir}')
     #prep, fs, mf, grph = import_custom_modules()
 
     # Load data
-    input_quantifications, df_z_scores, input_metadata = load_data(project_root, prep)
+    input_quantifications, df_z_scores, input_metadata = load_data()
 
     # Preprocess data
     initial_df, peptides_df_binary, z_scores_initial_df = preprocess_data(
-        input_quantifications, df_z_scores, input_metadata, prep
+        input_quantifications, df_z_scores, input_metadata
     )
 
     # Split data
     training_df, held_out_df, z_scores_train_df = split_data(
-        initial_df, z_scores_initial_df, output_dir, prep
+        initial_df, z_scores_initial_df, output_dir
     )
 
     # Class-specific workflow
     target_training_df, target_ho_df, target_z_scores_train_df = class_specific_workflow(
-        training_df, held_out_df, z_scores_train_df, peptides_df_binary, fs, mf
+        training_df, held_out_df, z_scores_train_df, peptides_df_binary
     )
 
     # Feature selection
-    target_proteins = feature_selection(target_z_scores_train_df, output_dir, fs)
+    target_proteins = feature_selection(target_z_scores_train_df, output_dir)
 
     # Model fitting
-    model_results = model_fitting(target_training_df, target_ho_df, target_proteins, output_dir,fs, mf)
+    model_results = model_fitting(target_training_df, target_ho_df, target_proteins, output_dir)
 
     # Generate graphs
-    generate_graphs(initial_df, model_results[4], target_proteins, output_dir ,grph)
+    generate_graphs(initial_df, model_results[4], target_proteins, output_dir)
 
     if model_results[0] is not None:
         print("=" * 80)
