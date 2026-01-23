@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 import os
+from typing import Optional, List
 
 import importlib
 
@@ -10,7 +11,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold, GridSearchCV
 from sklearn.metrics import  make_scorer,  f1_score, matthews_corrcoef
 from statsmodels.stats.multitest import fdrcorrection
-from scipy.stats import chi2
+from scipy.stats import chi2, mannwhitneyu
 from timeit import default_timer as timer
 from joblib import Parallel, delayed
 from tqdm import tqdm
@@ -90,7 +91,7 @@ def hparameter_grid_search(df: pd.DataFrame, n_splits: int, l1_ratio_list: list,
 
     # Selecting Data
     y_train = df['Classifier']  # True values (dependent variable)
-    X_train = df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1)  # Protein (independent variables) (Keep only quantitative data)
+    X_train = df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1, errors='ignore')  # Protein (independent variables) (Keep only quantitative data)
 
     # Define the parameter grid for GridSearchCV
     param_grid = {
@@ -117,7 +118,7 @@ def hparameter_grid_search(df: pd.DataFrame, n_splits: int, l1_ratio_list: list,
         logistic_regression, param_grid,
         cv=stratified_kfold,
         scoring=scorer,
-        n_jobs=16,
+        n_jobs=18,
         return_train_score=True
     )
 
@@ -148,7 +149,7 @@ def elnet_cross_val (df:pd.DataFrame, classified_by:str, l1_ratio:float, C:float
 
 
     y_train = df['Classifier']
-    X_train = df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1)
+    X_train = df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1, errors='ignore')
 
     #Defining model parameters
     log_reg = LogisticRegression(penalty='elasticnet',
@@ -365,7 +366,7 @@ def nested_cross_validation_logistic_regression(train_df:pd.DataFrame, n_splits:
     """
 
     y = train_df['Classifier']  # True values (dependent variable)
-    X = train_df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1) # Independent variables (proteins)
+    X = train_df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1, errors='ignore') # Independent variables (proteins)
 
     # Define the hyperparameter grid for Logistic Regression
     param_grid = {'C': [0.1, 1, 10]}
@@ -490,4 +491,49 @@ def nested_cv_hparameters_selection (input_dict:dict):
     print (pd.DataFrame(result))
     return result
 
+
+def calculate_mann_whitney(train_df: pd.DataFrame,
+                             group_col: str = 'Classifier',
+                             exclude_cols: Optional[List[str]] = None) -> pd.DataFrame:
+    """
+    Run Mann-Whitney U tests per numeric column using groups defined by group_col == class_label.
+    Returns a DataFrame with raw p-values, BH-adjusted p-values, and Cliff's delta.
+    """
+    if group_col not in train_df.columns:
+        raise KeyError(f"Missing required grouping column: {group_col}")
+
+    if exclude_cols is None:
+        exclude_cols = []
+
+    group_mask = train_df[group_col].eq(1)
+    group_a = train_df.loc[group_mask]
+    group_b = train_df.loc[~group_mask]
+
+    numeric_cols = train_df.select_dtypes(include=[np.number]).columns.tolist()
+    numeric_cols = [col for col in numeric_cols if col not in exclude_cols]
+
+    results = []
+    for col in numeric_cols:
+        a = group_a[col].dropna()
+        b = group_b[col].dropna()
+
+        if a.empty or b.empty:
+            p_val = np.nan
+            delta = np.nan
+        else:
+            u_stat, p_val = mannwhitneyu(a, b, alternative='two-sided')
+            delta = (2 * u_stat) / (len(a) * len(b)) - 1  ## greater than 0.33 is medium, effect. Taken from R cliffDelta documentation.
+
+        results.append({'feature': col, 'p_value': p_val, 'cliffs_delta': delta})
+
+    results_df = pd.DataFrame(results)
+
+    pvals = results_df['p_value'].to_numpy(dtype=float)
+    valid_mask = ~np.isnan(pvals)
+    adj = np.full_like(pvals, np.nan, dtype=float)
+    if valid_mask.any():
+        adj[valid_mask] = fdrcorrection(pvals[valid_mask], alpha=0.05)[1]
+    results_df['p_value_adj'] = adj
+
+    return results_df.sort_values(by='p_value_adj', ascending=True)
 

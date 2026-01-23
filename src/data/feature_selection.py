@@ -13,7 +13,7 @@ from statsmodels.stats.multitest import fdrcorrection
 from scipy.stats import chi2
 from timeit import default_timer as timer
 from joblib import Parallel, delayed
-from tqdm import tqdm  
+from tqdm import tqdm
 import warnings
 from sklearn.exceptions import ConvergenceWarning
 from entity_model_settings import run_folder_name
@@ -24,22 +24,22 @@ from entity_model_settings import run_folder_name
 def binary_labeling(df: pd.DataFrame, classified_by: str, true_class: list ) -> pd.DataFrame:
     """
     Adds a binary classifier column to the DataFrame based on the specified true classes.
-    
+
     Parameters:
     df (pd.DataFrame): The DataFrame to modify.
     classified_by (str): The column name containing the classification labels.
     true_class (str): The class label to be considered as '1' in the binary
-    
+
     """
     if 'Classifier' in df.columns:
         df = df.drop(columns=['Classifier'])
-        
+
     df.insert(
                 loc=2,  # position 2
                 column='Classifier',
                 value=np.where(df[classified_by].isin(true_class), 1, 0)
             )
-    
+
     print (f"\nNumber of samples per class:\n{df['Classifier'].value_counts()}\n")
 
 
@@ -49,13 +49,13 @@ def binary_labeling(df: pd.DataFrame, classified_by: str, true_class: list ) -> 
 def get_high_confidence_proteins(peptide_binary_df:pd.DataFrame, true_class:list, classified_by:str, threshold=0.7) -> list[str] :
     """
     Returns a list of protein names with identification in 70% of samples with at leat 2 peptides.
-     
+
     Args:
         peptide_binary_df (pd.DataFrame): DataFrame with binary peptide data.
         true_class (list): List of classes to filter the DataFrame.
         classified_by (str): Column name used for classification.
         threshold (float): Minimum percentage of samples in which a protein must be identified to be included
-    
+
     Returns:
         list[str]: List of protein names that meet the criteria.
     """
@@ -65,13 +65,13 @@ def get_high_confidence_proteins(peptide_binary_df:pd.DataFrame, true_class:list
         class_peptides_stats.T[class_peptides_stats.T['mean'] >= threshold].index
     )
     print (f" {len(proteins_by_peptides)} proteins identified in {threshold*100}% of {true_class} samples")
-    
+
     return proteins_by_peptides
 
 
 def hparameter_grid_search(df: pd.DataFrame, n_splits: int, l1_ratio_list: list, C_list: list, classified_by: str) -> tuple:
     """
-    Perform grid search for logistic regression using the provided dataframe, number of splits for cross-validation, 
+    Perform grid search for logistic regression using the provided dataframe, number of splits for cross-validation,
     l1_ratio and C values.
 
     Parameters:
@@ -90,7 +90,7 @@ def hparameter_grid_search(df: pd.DataFrame, n_splits: int, l1_ratio_list: list,
 
     # Selecting Data
     y_train = df['Classifier']  # True values (dependent variable)
-    X_train = df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1)  # Protein (independent variables) (Keep only quantitative data)
+    X_train = df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1, errors='ignore')  # Protein (independent variables) (Keep only quantitative data)
 
     # Define the parameter grid for GridSearchCV
     param_grid = {
@@ -108,16 +108,16 @@ def hparameter_grid_search(df: pd.DataFrame, n_splits: int, l1_ratio_list: list,
                                              random_state=93)
 
     # Define Stratified K-Fold Cross-Validation
-    stratified_kfold = StratifiedKFold(n_splits=n_splits, 
-                                       shuffle=True, 
+    stratified_kfold = StratifiedKFold(n_splits=n_splits,
+                                       shuffle=True,
                                        random_state=0)
 
     # Create a GridSearchCV object
     grid_search = GridSearchCV(
-        logistic_regression, param_grid, 
+        logistic_regression, param_grid,
         cv=stratified_kfold,
-        scoring=scorer, 
-        n_jobs=16, 
+        scoring=scorer,
+        n_jobs=16,
         return_train_score=True
     )
 
@@ -126,7 +126,7 @@ def hparameter_grid_search(df: pd.DataFrame, n_splits: int, l1_ratio_list: list,
 
     end = timer()
     print(f"Grid search completed in {end - start:.2f} seconds")
-    
+
     # Print the results
     print(f"Best parameters: {grid_search.best_params_}")
     print(f"Best score: {grid_search.best_score_}")
@@ -137,7 +137,7 @@ def hparameter_grid_search(df: pd.DataFrame, n_splits: int, l1_ratio_list: list,
 
 def elnet_cross_val (df:pd.DataFrame, classified_by:str, l1_ratio:float, C:float, n_splits:int, random_state=1) -> pd.DataFrame:
     """
-    This function return the coefficients of the independent variables defined by ML Logistic Regression. Uses 5k Cross Validation. 
+    This function return the coefficients of the independent variables defined by ML Logistic Regression. Uses 5k Cross Validation.
     df:input the imputated and concatenated dataframe, generated with previous functions.
     random_state: random state of CV
 
@@ -146,53 +146,53 @@ def elnet_cross_val (df:pd.DataFrame, classified_by:str, l1_ratio:float, C:float
     log_reg_coeff_list = []
     results = []
 
-    
-    y_train = df['Classifier'] 
-    X_train = df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1) 
+
+    y_train = df['Classifier']
+    X_train = df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1, errors='ignore')
 
     #Defining model parameters
-    log_reg = LogisticRegression(penalty='elasticnet',  
-                                 solver='saga', 
+    log_reg = LogisticRegression(penalty='elasticnet',
+                                 solver='saga',
                                  l1_ratio=l1_ratio ,
-                                 max_iter=10000, 
-                                 C = C, 
+                                 max_iter=10000,
+                                 C = C,
                                  class_weight= 'balanced',
                                  warm_start=False,
                                  random_state=93
                                 )
     #Saving the id used for each fold:
-        
+
     # Create StratifiedKFold object.
     skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
     for train_index, test_index in skf.split(X_train, y_train):
         x_train_fold, x_test_fold = X_train.iloc[train_index], X_train.iloc[test_index]
         y_train_fold, y_test_fold = y_train.iloc[train_index], y_train.iloc[test_index]
         log_reg.fit(x_train_fold, y_train_fold)
-        
+
     #Logaritmic regression model coeffiecient:
         log_reg_coeff_list = log_reg.coef_.tolist()
-    
+
     #Logaritmic regression model coeffiecient INTERCEPT:
         log_reg_coeff_list[0].append (log_reg.intercept_[0])
-        
+
     #Model predictions for score in folds
         y_predict_fold = log_reg.predict(x_test_fold)
-                
-    #Intercept        
+
+    #Intercept
         results.append(log_reg_coeff_list[0])
-        
+
     #F1_score for class 1 - entity prediction
         f1_score_class_1 = f1_score(y_test_fold, y_predict_fold, pos_label=1)
         log_reg_coeff_list[0].append(f1_score_class_1)
-    
+
     #F1_score for class 0 - entity prediction
         f1_score_class_0 = f1_score(y_test_fold, y_predict_fold, pos_label=0)
         log_reg_coeff_list[0].append(f1_score_class_0)
-    
+
     #F1_score for class 1 - entity prediction
         f1_score_class_weighted = f1_score(y_test_fold, y_predict_fold, average= 'weighted')
         log_reg_coeff_list[0].append(f1_score_class_weighted)
-    
+
     #MCC Score
         MCC_score = matthews_corrcoef(y_test_fold, y_predict_fold)
         log_reg_coeff_list[0].append(MCC_score)
@@ -200,29 +200,29 @@ def elnet_cross_val (df:pd.DataFrame, classified_by:str, l1_ratio:float, C:float
 
     col_names = X_train.columns.tolist()
     col_names.extend(['Intercept','F1_1', 'F1_0','F1_weighted','MCC_score' ])
-    
-    
+
+
     coeff_score_df = pd.DataFrame(results)
     coeff_score_df.columns = col_names
-    
+
     return(coeff_score_df)
 
 
-def elnet_wrapper (df:pd.DataFrame, 
+def elnet_wrapper (df:pd.DataFrame,
                              classified_by:str,
                              tumor_type_name:str,
-                             l1_ratio:float, 
+                             l1_ratio:float,
                              C:float,
                              output_directory:str,
-                             n_splits=4, 
-                             n_repeats=1, 
+                             n_splits=4,
+                             n_repeats=1,
                              n_jobs=16,
                              export=True) -> pd.DataFrame:
-    
-    """ 
+
+    """
     Wrapper funtion of elnet_cross_val. Executes "n_repeats" times a cross validated logistic regression, storing the coefficients and scores for each "n_repeats" fit of the data.
     An adaptation of bootstrapping
-    
+
     Args:
         df: Input dataframe with proteins intensities, imputated and with no NaN values
         n_repeats: input the number of repetitions. n_repeats = 1 : 1 experiment with 5k Cross validation
@@ -246,11 +246,11 @@ def elnet_wrapper (df:pd.DataFrame,
 
 
     results = Parallel(n_jobs=n_jobs)(
-        delayed(elnet_cross_val)(df, 
-                                 classified_by=classified_by, 
-                                 l1_ratio=l1_ratio, 
-                                 C=C, 
-                                 random_state=iteration, 
+        delayed(elnet_cross_val)(df,
+                                 classified_by=classified_by,
+                                 l1_ratio=l1_ratio,
+                                 C=C,
+                                 random_state=iteration,
                                  n_splits=n_splits) for iteration in tqdm(repetitions, desc="Running Logistic Regression", unit="iteration")
     )
 
@@ -265,14 +265,14 @@ def elnet_wrapper (df:pd.DataFrame,
     return (df_concatenated)
 
 
-def statistic_from_coefficients (Coefficients_df:pd.DataFrame, 
+def statistic_from_coefficients (Coefficients_df:pd.DataFrame,
                                  true_class: list,
                                  output_directory:str):
-    """ 
-    Args: 
+    """
+    Args:
         Coefficients_df: DataFrame that contains all the coefficients of the cross folded Logistic Regression.
 
-    Returns: 
+    Returns:
         coefficients_stats: Dataframe with the mean, std, Coeficient of Variation and p_value of the coefficients. Values per each protein. .
         significant_proteins: List of significant proteins, sorted by coefficient value.
     """
@@ -283,7 +283,7 @@ def statistic_from_coefficients (Coefficients_df:pd.DataFrame,
     #Calculating frequency
     coefficients_stats.loc['Freq'] = [(Coefficients_df[column] != 0).sum()/ Coefficients_df[column].count() for column in coefficients_stats.columns]#-> Selecting by index
 
-    # Calculating Wald Test for each coefficient 
+    # Calculating Wald Test for each coefficient
     coefficients_stats.loc['Wald Chi-Square'] = (np.square(coefficients_stats.loc['mean']))/(np.square(coefficients_stats.loc['std']))
     p_values = 1 - chi2.cdf(coefficients_stats.loc['Wald Chi-Square'], df=1)
 
@@ -293,15 +293,15 @@ def statistic_from_coefficients (Coefficients_df:pd.DataFrame,
 
     #Defining if the Wald value is greater than the significance level at 99% = 6.635. N
     #coefficients_stats.loc['Significant'] = [True if i > 6.635 else False for i in coefficients_stats.loc['Wald Chi-Square'] ]
-    
+
     coefficients_stats= coefficients_stats.transpose()
-    
+
     #returning list of significant proteins in order of coefficient value
     protein_coefficients_stats = coefficients_stats.iloc[:-5,:].sort_values(by='mean', ascending=False) #Sort by mean value of coefficients
 
     significant_proteins = protein_coefficients_stats[protein_coefficients_stats['Significant']==1].index.tolist()
-    
-    ## EXPORTING ## 
+
+    ## EXPORTING ##
     class_name = "_".join(true_class)
 
     coefficients_stats.to_excel(os.path.join(output_directory, f'{class_name}_folds_stats.xlsx'), engine='xlsxwriter', index=True)
@@ -315,18 +315,18 @@ def statistic_from_coefficients (Coefficients_df:pd.DataFrame,
     print("With ",protein_coefficients_stats.shape[0], " folds, the following statistics were obtained, from feature selection:")
     print("• Mean MCC score:",np.round(coefficients_stats.loc['MCC_score']['mean'], 4), '±', np.round(coefficients_stats.loc['MCC_score']['std'], 4))
     print()
-    
+
     print("--"*20)
     print("• Top 3 proteins with highest coefficients:")
     print(protein_coefficients_stats.head(3))
     print()
-    
+
     print("--"*20)
     print("• List of significant proteins:",significant_proteins)
     print(f"• Number of significant proteins: {len(significant_proteins)}")
     print()
-    
-    print("--"*20) 
+
+    print("--"*20)
     if np.round(coefficients_stats.loc['MCC_score']['mean'], 4) < 0.70:
         print(" ✖ Warning! ✖: The mean MCC score is below 0.7, indicating poor model performance.")
     elif 0.80 > np.round(coefficients_stats.loc['MCC_score']['mean'], 4) > 0.70:
@@ -345,7 +345,7 @@ def reshape_df_for_fitting(training_df: pd.DataFrame, selected_features: list) -
     Parameters:
     training_df (pd.DataFrame): The DataFrame containing training data.
     selected_features (list): List of proteins to include in the reshaped DataFrame.
-    
+
     Returns:
     pd.DataFrame: Reshaped DataFrame with specified proteins.
     """
@@ -365,7 +365,7 @@ def nested_cross_validation_logistic_regression(train_df:pd.DataFrame, n_splits:
     """
 
     y = train_df['Classifier']  # True values (dependent variable)
-    X = train_df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1) # Independent variables (proteins)
+    X = train_df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1, errors='ignore') # Independent variables (proteins)
 
     # Define the hyperparameter grid for Logistic Regression
     param_grid = {'C': [0.1, 1, 10]}
@@ -422,16 +422,16 @@ def nested_cross_validation_logistic_regression(train_df:pd.DataFrame, n_splits:
         print(f"{inner_fold_cycle} Inner fold best parameter={best_param}, Score={best_score:.4f}, Outer Validation MCC Score: {outer_score:.4f}")
         print()
         inner_fold_cycle += 1
- 
+
     # Print overall mean MCC score
     print(f"Average MCC across all outer folds: {np.mean(outer_scores):.4f}")
-    
+
     return outer_scores, best_params
 
 
 def wrapper_nested_cv(train_df:pd.DataFrame, random_state_tries=4, n_splits=4, classified_by='code_oncotree') -> dict:
     """
-    Wrapper function for nested cross-validation. 
+    Wrapper function for nested cross-validation.
     Repeats the nested cross-validation process for a specified number of random state tries.
 
     Args:
@@ -443,12 +443,12 @@ def wrapper_nested_cv(train_df:pd.DataFrame, random_state_tries=4, n_splits=4, c
     Returns:
         dict: Results of the nested cross-validation.
     """
-    
+
     results = {}
     for i in list(range(random_state_tries)):
         print(f"• Running for random_state={i}")
         outer_scores, best_params = nested_cross_validation_logistic_regression(
-            train_df, 
+            train_df,
             random_state=i,
             n_splits=n_splits,
             classified_by=classified_by
@@ -459,12 +459,12 @@ def wrapper_nested_cv(train_df:pd.DataFrame, random_state_tries=4, n_splits=4, c
         }
         print()
         print("-" * 50)
-    
+
     return results
 
 
 def nested_cv_hparameters_selection (input_dict:dict):
-    
+
     # Initialize the result dictionary
     result = {}
 
@@ -472,14 +472,14 @@ def nested_cv_hparameters_selection (input_dict:dict):
     for key, value in input_dict.items():
         scores = value['outer_scores']
         params = value['best_params']
-        
+
         for score, param in zip(scores, params):
             C_value = param['C']
-            
+
             # If the C value is not already in the result, initialize it
             if C_value not in result:
                 result[C_value] = {'scores': [], 'count': 0, 'avg': 0}
-            
+
             # Append the score, update count
             result[C_value]['scores'].append(score)
             result[C_value]['count'] += 1

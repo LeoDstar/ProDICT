@@ -26,7 +26,7 @@ import prodict.config as cfg
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # .../ProDICT
 
 # Load configuration (no CWD dependence)
-CONFIG_PATH = PROJECT_ROOT / "data" / "small_data_model_settings.yaml"
+CONFIG_PATH = PROJECT_ROOT / "data" / "entity_model_settings.yaml"
 cfg.load_config(CONFIG_PATH)
 
 # Derive output directory consistently
@@ -235,7 +235,7 @@ def preprocess_data(input_quantifications, df_z_scores, input_metadata):
     return initial_df, peptides_df_binary, z_scores_initial_df
 
 
-def split_data(initial_df, z_scores_initial_df, output_directory):
+def split_data(initial_df, z_scores_initial_df, output_directory, export_train_split):
     """Split data into training and held-out sets"""
     print("="*80)
     print("Splitting data...")
@@ -258,11 +258,15 @@ def split_data(initial_df, z_scores_initial_df, output_directory):
         output_directory=output_directory,
         split_size=SPLIT_SIZE,
         classified_by=CLASSIFIED_BY,
-        export=True,
+        export=export_train_split,
     )
 
     # Z_scores dataset
     z_scores_train_df = z_scores_initial_df[z_scores_initial_df['Sample name'].isin(training_df['Sample name'])]
+
+    training_df = training_df.drop(columns=['TCC'])
+    held_out_df = held_out_df.drop(columns=['TCC'])
+    z_scores_train_df = z_scores_train_df.drop(columns=['TCC'])
 
     print(f"Samples match between Z-score and intesntity dataset: {set(training_df['Sample name']) == set(z_scores_train_df['Sample name'])}")
 
@@ -290,12 +294,24 @@ def class_specific_workflow(training_df, held_out_df, z_scores_train_df, peptide
 
     # 1st Filter - Filtering training and held-out dataframes by proteins with peptides
     target_training_df = target_training_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + target_proteins_by_peptides)
-    target_ho_df = target_ho_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + target_proteins_by_peptides)
-    target_z_scores_train_df = target_z_scores_train_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + target_proteins_by_peptides)
+    # target_ho_df = target_ho_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + target_proteins_by_peptides)
+    # target_z_scores_train_df = target_z_scores_train_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + target_proteins_by_peptides)
+
+    # 2nd Filter - Filtering taining and held-out dataframes by mann whitney U significant test
+    effect_size_for_class = fs.calculate_mann_whitney(
+        target_training_df, exclude_cols=['code_oncotree', 'TCC', 'Classifier'])
+    significant_features_mwu = list(effect_size_for_class[(effect_size_for_class['p_value_adj'] < 0.01) & (effect_size_for_class['cliffs_delta'] > 0.15)]['feature'])
+
+    target_training_df = target_training_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + significant_features_mwu)
+    target_ho_df = target_ho_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + significant_features_mwu)
+    target_z_scores_train_df = target_z_scores_train_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + significant_features_mwu)
 
     print(f"Filtered training set shape: {target_training_df.shape}")
     print(f"Filtered held-out set shape: {target_ho_df.shape}")
     print(f"Filtered z-scores training set shape: {target_z_scores_train_df.shape}")
+    print('*'*80)
+    print(f"{len(significant_features_mwu)} significant proteins (p<0.01 & Cliff's d > 0.33)")
+    print(f"{significant_features_mwu[:10]}")
 
     return target_training_df, target_ho_df, target_z_scores_train_df
 
@@ -478,12 +494,13 @@ def main():
 
     # Split data
     training_df, held_out_df, z_scores_train_df = split_data(
-        initial_df, z_scores_initial_df, output_dir
+        initial_df, z_scores_initial_df, output_dir, export_train_split=False
     )
 
     # Class-specific workflow
     target_training_df, target_ho_df, target_z_scores_train_df = class_specific_workflow(
-        training_df, held_out_df, z_scores_train_df, peptides_df_binary
+        training_df, held_out_df, z_scores_train_df, peptides_df_binary #peptides_df_binary might introduce data leakage
+        ## peptideds_df_binary was calculates with all samples and not just training samples
     )
 
     # Feature selection

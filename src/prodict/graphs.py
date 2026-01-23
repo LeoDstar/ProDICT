@@ -103,7 +103,7 @@ def create_umap_plot(df,
     # Update layout
     fig.update_layout(
         title={
-            'text': title,
+            'text': str(title),
             'x': 0.5,
             'xanchor': 'center',
             'font': {'size': 14}
