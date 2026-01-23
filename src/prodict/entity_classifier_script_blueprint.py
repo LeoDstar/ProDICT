@@ -22,6 +22,9 @@ import prodict.model_fit as mf
 import prodict.graphs as grph
 import prodict.config as cfg
 
+from sklearn.preprocessing import StandardScaler
+import pickle
+
 # Importing settings from YAML configuration for the model
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # .../ProDICT
 
@@ -98,22 +101,22 @@ def setup_paths():
     return project_root
 
 
-def import_custom_modules():
-    """Import custom modules with error handling"""
-    try:
-        import preprocessing as prep
-        import feature_selection as fs
-        import model_fit as mf
-        import graphs as grph
-        return prep, fs, mf, grph
-    except ImportError as e:
-        print(f"Error importing custom modules: {e}")
-        print("Make sure the following modules are in src/data/:")
-        print("- LogRegFxF.py")
-        print("- preprocessing.py")
-        print("- feature_selection.py")
-        print("- model_fit.py")
-        sys.exit(1)
+# def import_custom_modules():
+#     """Import custom modules with error handling"""
+#     try:
+#         import preprocessing as prep
+#         import feature_selection as fs
+#         import model_fit as mf
+#         import graphs as grph
+#         return prep, fs, mf, grph
+#     except ImportError as e:
+#         print(f"Error importing custom modules: {e}")
+#         print("Make sure the following modules are in src/data/:")
+#         print("- LogRegFxF.py")
+#         print("- preprocessing.py")
+#         print("- feature_selection.py")
+#         print("- model_fit.py")
+#         sys.exit(1)
 
 
 def load_data():
@@ -208,29 +211,30 @@ def preprocess_data(input_quantifications, df_z_scores, input_metadata):
 
     print("Peptides binary dataframe shape:", peptides_df_binary.shape)
 
-    # Process Z-scores
-    z_scores_df = df_z_scores.transpose(copy=True)
-    print("Z-scores dataframe shape before processing:", z_scores_df.shape)
-    z_scores_df = z_scores_df.reset_index()
-    z_scores_df = z_scores_df.replace('zscore_','', regex=True)
-    z_scores_df.rename(columns = z_scores_df.iloc[0], inplace=True)
-    z_scores_df.drop(axis=0, index=0, inplace=True)
-    z_scores_df['Gene names'] = z_scores_df.iloc[:,0].str.replace('pat_', '')
-    z_scores_df = z_scores_df.set_index('Gene names')
-    print("Z-scores dataframe shape after processing:", z_scores_df.shape)
-    #print("Z-scores columns:", z_scores_df.columns.tolist())
-    z_scores_imputed = prep.impute_normal_down_shift_distribution(
-        z_scores_df,
-        width=IMPUTATION_WIDTH,
-        downshift=IMPUTATION_DOWNSHIFT,
-        seed=IMPUTATION_SEED
-    )
-    z_scores_imputed.reset_index(inplace=True)
-    z_scores_imputed.rename(columns={'Gene names': SAMPLES_COLUMN}, inplace=True)
-    z_scores_imputed[SAMPLES_COLUMN] = z_scores_imputed[SAMPLES_COLUMN].str.strip()
-    z_scores_initial_df = samples_metadata.merge(z_scores_imputed, on=SAMPLES_COLUMN, how='left')
+    # # Process Z-scores
+    # z_scores_df = df_z_scores.transpose(copy=True)
+    # print("Z-scores dataframe shape before processing:", z_scores_df.shape)
+    # z_scores_df = z_scores_df.reset_index()
+    # z_scores_df = z_scores_df.replace('zscore_','', regex=True)
+    # z_scores_df.rename(columns = z_scores_df.iloc[0], inplace=True)
+    # z_scores_df.drop(axis=0, index=0, inplace=True)
+    # z_scores_df['Gene names'] = z_scores_df.iloc[:,0].str.replace('pat_', '')
+    # z_scores_df = z_scores_df.set_index('Gene names')
+    # print("Z-scores dataframe shape after processing:", z_scores_df.shape)
+    # #print("Z-scores columns:", z_scores_df.columns.tolist())
+    # z_scores_imputed = prep.impute_normal_down_shift_distribution(
+    #     z_scores_df,
+    #     width=IMPUTATION_WIDTH,
+    #     downshift=IMPUTATION_DOWNSHIFT,
+    #     seed=IMPUTATION_SEED
+    # )
+    # z_scores_imputed.reset_index(inplace=True)
+    # z_scores_imputed.rename(columns={'Gene names': SAMPLES_COLUMN}, inplace=True)
+    # z_scores_imputed[SAMPLES_COLUMN] = z_scores_imputed[SAMPLES_COLUMN].str.strip()
+    # z_scores_initial_df = samples_metadata.merge(z_scores_imputed, on=SAMPLES_COLUMN, how='left')
 
-    print("Z-scores initial dataframe shape:", z_scores_initial_df.shape)
+    # print("Z-scores initial dataframe shape:", z_scores_initial_df.shape)
+    z_scores_initial_df = pd.DataFrame()  # Placeholder
 
     return initial_df, peptides_df_binary, z_scores_initial_df
 
@@ -251,7 +255,6 @@ def split_data(initial_df, z_scores_initial_df, output_directory, export_train_s
         .pipe(prep.remove_class, ['very low', 'notdefined'], 'TCC GROUP', output_directory)
     )
 
-
     # Splitting dataset into training and held-out sets
     training_df, held_out_df = prep.data_split(
         ml_initial_df,
@@ -261,23 +264,43 @@ def split_data(initial_df, z_scores_initial_df, output_directory, export_train_s
         export=export_train_split,
     )
 
-    # Z_scores dataset
-    z_scores_train_df = z_scores_initial_df[z_scores_initial_df['Sample name'].isin(training_df['Sample name'])]
+    print("="*80)
+    print("Preprocessing data, normalizing Train set, and Test set...")
+    print("="*80)
+
+    scaler = StandardScaler()
+    scaled_train = scaler.fit_transform(training_df.drop(['Sample name', 'code_oncotree', 'TCC', 'TCC GROUP'], axis=1, errors='ignore'))
+    scaled_train = pd.DataFrame(scaled_train,
+                                columns=training_df.drop(['Sample name', 'code_oncotree', 'TCC', 'TCC GROUP'], axis=1, errors='ignore').columns,
+                                index=training_df.index)
+    scaled_train = pd.concat([training_df[['Sample name', 'code_oncotree']], scaled_train], axis=1)
+    print("Train dataframe shape:", training_df.shape)
+    print("Train Normalized dataframe shape:", scaled_train.shape)
+
+    scaled_hold_out = scaler.transform(held_out_df.drop(['Sample name', 'code_oncotree', 'TCC', 'TCC GROUP'], axis=1, errors='ignore'))
+    scaled_hold_out = pd.DataFrame(scaled_hold_out,
+                               columns=held_out_df.drop(['Sample name', 'code_oncotree', 'TCC', 'TCC GROUP'], axis=1, errors='ignore').columns,
+                               index=held_out_df.index)
+    scaled_hold_out = pd.concat([held_out_df[['Sample name', 'code_oncotree']], scaled_hold_out], axis=1)
+    print("Test dataframe shape:", held_out_df.shape)
+    print("Test Normalized dataframe shape:", scaled_hold_out.shape)
+
+
+    with open(f"{output_dir}/{TARGET_CLASS_NAME}_normalization_parameters.pkl", "wb") as f:
+        pickle.dump(scaler, f)
 
     training_df = training_df.drop(columns=['TCC'])
     held_out_df = held_out_df.drop(columns=['TCC'])
-    z_scores_train_df = z_scores_train_df.drop(columns=['TCC'])
 
-    print(f"Samples match between Z-score and intesntity dataset: {set(training_df['Sample name']) == set(z_scores_train_df['Sample name'])}")
+    print(f"Samples match between Z-score and intesntity dataset: {set(training_df['Sample name']) == set(scaled_train['Sample name'])}")
 
     print(f"Training set size: {training_df.shape}")
     print(f"Held-out set size: {held_out_df.shape}")
-    print(f"Z-scores training set size: {z_scores_train_df.shape}")
 
-    return training_df, held_out_df, z_scores_train_df
+    return training_df, held_out_df, scaled_train, scaled_hold_out
 
 
-def class_specific_workflow(training_df, held_out_df, z_scores_train_df, peptides_df_binary):
+def class_specific_workflow(training_df, held_out_df, scaled_train, scaled_held_out, peptides_df_binary):
     """Execute class-specific workflow for specified classification"""
     print("="*80)
     print(f"Starting class-specific workflow for {TARGET_CLASS}...")
@@ -290,7 +313,8 @@ def class_specific_workflow(training_df, held_out_df, z_scores_train_df, peptide
     # Binary labeling for specific class classification
     target_training_df =        fs.binary_labeling(training_df, classified_by=CLASSIFIED_BY, true_class=TARGET_CLASS)
     target_ho_df =              fs.binary_labeling(held_out_df, classified_by=CLASSIFIED_BY, true_class=TARGET_CLASS)
-    target_z_scores_train_df =  fs.binary_labeling(z_scores_train_df, classified_by=CLASSIFIED_BY, true_class=TARGET_CLASS)
+    target_z_scores_train_df =  fs.binary_labeling(scaled_train, classified_by=CLASSIFIED_BY, true_class=TARGET_CLASS)
+    target_z_scores_held_out_df =  fs.binary_labeling(scaled_held_out, classified_by=CLASSIFIED_BY, true_class=TARGET_CLASS)
 
     # 1st Filter - Filtering training and held-out dataframes by proteins with peptides
     target_training_df = target_training_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + target_proteins_by_peptides)
@@ -303,17 +327,18 @@ def class_specific_workflow(training_df, held_out_df, z_scores_train_df, peptide
     significant_features_mwu = list(effect_size_for_class[(effect_size_for_class['p_value_adj'] < 0.01) & (effect_size_for_class['cliffs_delta'] > 0.15)]['feature'])
 
     target_training_df = target_training_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + significant_features_mwu)
-    target_ho_df = target_ho_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + significant_features_mwu)
+    #target_ho_df = target_ho_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + significant_features_mwu)
     target_z_scores_train_df = target_z_scores_train_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + significant_features_mwu)
+
 
     print(f"Filtered training set shape: {target_training_df.shape}")
     print(f"Filtered held-out set shape: {target_ho_df.shape}")
     print(f"Filtered z-scores training set shape: {target_z_scores_train_df.shape}")
     print('*'*80)
-    print(f"{len(significant_features_mwu)} significant proteins (p<0.01 & Cliff's d > 0.33)")
+    print(f"{len(significant_features_mwu)} significant proteins (p<0.01 & Cliff's d > 0.15)")
     print(f"{significant_features_mwu[:10]}")
 
-    return target_training_df, target_ho_df, target_z_scores_train_df
+    return target_training_df, target_ho_df, target_z_scores_train_df, target_z_scores_held_out_df
 
 
 def feature_selection(target_z_scores_train_df, output_directory):
@@ -327,6 +352,7 @@ def feature_selection(target_z_scores_train_df, output_directory):
     # Hyperparameters for ElasticNet
     print("-"*80)
     print("Defining hyperparameters for ElasticNet...")
+    print(f"Number of proteins used:{target_z_scores_train_df.shape[1]}")
 
     try:
         target_cv_results, target_best_params, target_best_score, target_grid_search_obj = fs.hparameter_grid_search(
@@ -493,13 +519,13 @@ def main():
     )
 
     # Split data
-    training_df, held_out_df, z_scores_train_df = split_data(
+    training_df, held_out_df, z_scores_train_df, z_scores_held_out = split_data(
         initial_df, z_scores_initial_df, output_dir, export_train_split=False
     )
 
     # Class-specific workflow
-    target_training_df, target_ho_df, target_z_scores_train_df = class_specific_workflow(
-        training_df, held_out_df, z_scores_train_df, peptides_df_binary #peptides_df_binary might introduce data leakage
+    target_training_df, target_ho_df, target_z_scores_train_df, target_z_scores_held_out_df = class_specific_workflow(
+        training_df, held_out_df, z_scores_train_df, z_scores_held_out, peptides_df_binary #peptides_df_binary might introduce data leakage
         ## peptideds_df_binary was calculates with all samples and not just training samples
     )
 
@@ -507,7 +533,7 @@ def main():
     target_proteins = feature_selection(target_z_scores_train_df, output_dir)
 
     # Model fitting
-    model_results = model_fitting(target_training_df, target_ho_df, target_proteins, output_dir)
+    model_results = model_fitting(target_z_scores_train_df, target_z_scores_held_out_df, target_proteins, output_dir)
 
     # Generate graphs
     generate_graphs(initial_df, model_results[4], target_proteins, output_dir)
