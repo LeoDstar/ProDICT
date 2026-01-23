@@ -29,7 +29,7 @@ import pickle
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # .../ProDICT
 
 # Load configuration (no CWD dependence)
-CONFIG_PATH = PROJECT_ROOT / "data" / "small_data_model_settings.yaml"
+CONFIG_PATH = PROJECT_ROOT / "data" / "entity_model_settings.yaml"
 cfg.load_config(CONFIG_PATH)
 
 # Derive output directory consistently
