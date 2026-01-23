@@ -29,7 +29,7 @@ import pickle
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # .../ProDICT
 
 # Load configuration (no CWD dependence)
-CONFIG_PATH = PROJECT_ROOT / "data" / "entity_model_settings.yaml"
+CONFIG_PATH = PROJECT_ROOT / "data" / "small_data_model_settings.yaml"
 cfg.load_config(CONFIG_PATH)
 
 # Derive output directory consistently
@@ -101,24 +101,6 @@ def setup_paths():
     return project_root
 
 
-# def import_custom_modules():
-#     """Import custom modules with error handling"""
-#     try:
-#         import preprocessing as prep
-#         import feature_selection as fs
-#         import model_fit as mf
-#         import graphs as grph
-#         return prep, fs, mf, grph
-#     except ImportError as e:
-#         print(f"Error importing custom modules: {e}")
-#         print("Make sure the following modules are in src/data/:")
-#         print("- LogRegFxF.py")
-#         print("- preprocessing.py")
-#         print("- feature_selection.py")
-#         print("- model_fit.py")
-#         sys.exit(1)
-
-
 def load_data():
     """Load all required data files"""
     print("="*80)
@@ -129,16 +111,16 @@ def load_data():
 
     # Construct file paths using configuration variables
     intensity_path_file = FOLDER_PATH + PROCESSED_DATA_FOLDER + PREPROCESSED_FP_INTENSITY
-    z_scores_path_file = FOLDER_PATH + PROCESSED_DATA_FOLDER + PREPROCESSED_FP_Z_SCORES
+    #z_scores_path_file = FOLDER_PATH + PROCESSED_DATA_FOLDER + PREPROCESSED_FP_Z_SCORES
     the_metadata_file = METADATA_PATH + METADATA_FILE
 
     print(f"Loading intensity data from: {intensity_path_file}")
-    print(f"Loading z-scores data from: {z_scores_path_file}")
+    #print(f"Loading z-scores data from: {z_scores_path_file}")
     print(f"Loading metadata from: {the_metadata_file}")
 
     try:
         input_quantifications = prep.read_table_with_correct_sep(intensity_path_file)
-        df_z_scores = prep.read_table_with_correct_sep(z_scores_path_file)
+        #df_z_scores = prep.read_table_with_correct_sep(z_scores_path_file)
         input_metadata = pd.read_excel(the_metadata_file,
                                         usecols=['Sample name', 'code_oncotree', 'Tumor cell content', 'TCC_Bioinfo', 'TCC GROUP'],
                                         dtype={'Sample name': 'string', 'code_oncotree': 'string', 'Tumor cell content': 'float64', 'TCC_Bioinfo': 'float64', 'TCC GROUP': 'string'},
@@ -146,10 +128,10 @@ def load_data():
 
         print("Data files loaded successfully.")
         print(f"Quantifications shape: {input_quantifications.shape}")
-        print(f"Z-scores shape: {df_z_scores.shape}")
+        #print(f"Z-scores shape: {df_z_scores.shape}")
         print(f"Metadata shape: {input_metadata.shape}")
 
-        return input_quantifications, df_z_scores, input_metadata
+        return input_quantifications, input_metadata
 
     except FileNotFoundError as e:
         print(f"Error loading data files: {e}")
@@ -160,33 +142,20 @@ def load_data():
         sys.exit(1)
 
 
-def preprocess_data(input_quantifications, df_z_scores, input_metadata):
+def preprocess_data(input_quantifications, input_metadata):
     """Preprocess all data"""
     print("="*80)
     print("Preprocessing data...")
     print("="*80)
     # Protein quantification intensities post-processing
 
-
-    input_quantifications = input_quantifications.set_index(input_quantifications.columns[0])
+    input_quantifications = input_quantifications.set_index(input_quantifications.columns[0])  # noqa: E501
     peptides_quant_info = prep.post_process_meta_intensities(
         input_quantifications.iloc[:, int(input_quantifications.shape[1]/2):].T
     )
     proteins_quant = input_quantifications.iloc[:, :int(input_quantifications.shape[1]/2)].T
     print(f"***proteins quantifications columns: {proteins_quant.iloc[:,:10].columns.tolist()}")
 
-    # Imputation with configurable parameters
-    # prot_quant_imputed = prep.impute_normal_down_shift_distribution(
-    #     proteins_quant,
-    #     width=IMPUTATION_WIDTH,
-    #     downshift=IMPUTATION_DOWNSHIFT,
-    #     seed=IMPUTATION_SEED
-    # )
-    # na_columns = prot_quant_imputed.isna().any()
-    # na_columns_true = na_columns[na_columns].index.tolist()
-    # print("Proteins with empty values:", na_columns_true)
-
-    # print(f"***Input after imputation columns: {prot_quant_imputed.iloc[:,:10].columns.tolist()}")
     # Cleaning sample names
     prot_quant_imputed = proteins_quant.copy()  # Placeholder for imputation step
     prot_quant_imputed.reset_index(inplace=True)
@@ -213,40 +182,15 @@ def preprocess_data(input_quantifications, df_z_scores, input_metadata):
 
     print("Peptides binary dataframe shape:", peptides_df_binary.shape)
 
-    # # Process Z-scores
-    # z_scores_df = df_z_scores.transpose(copy=True)
-    # print("Z-scores dataframe shape before processing:", z_scores_df.shape)
-    # z_scores_df = z_scores_df.reset_index()
-    # z_scores_df = z_scores_df.replace('zscore_','', regex=True)
-    # z_scores_df.rename(columns = z_scores_df.iloc[0], inplace=True)
-    # z_scores_df.drop(axis=0, index=0, inplace=True)
-    # z_scores_df['Gene names'] = z_scores_df.iloc[:,0].str.replace('pat_', '')
-    # z_scores_df = z_scores_df.set_index('Gene names')
-    # print("Z-scores dataframe shape after processing:", z_scores_df.shape)
-    # #print("Z-scores columns:", z_scores_df.columns.tolist())
-    # z_scores_imputed = prep.impute_normal_down_shift_distribution(
-    #     z_scores_df,
-    #     width=IMPUTATION_WIDTH,
-    #     downshift=IMPUTATION_DOWNSHIFT,
-    #     seed=IMPUTATION_SEED
-    # )
-    # z_scores_imputed.reset_index(inplace=True)
-    # z_scores_imputed.rename(columns={'Gene names': SAMPLES_COLUMN}, inplace=True)
-    # z_scores_imputed[SAMPLES_COLUMN] = z_scores_imputed[SAMPLES_COLUMN].str.strip()
-    # z_scores_initial_df = samples_metadata.merge(z_scores_imputed, on=SAMPLES_COLUMN, how='left')
 
-    # print("Z-scores initial dataframe shape:", z_scores_initial_df.shape)
-    z_scores_initial_df = pd.DataFrame()  # Placeholder
-
-    return initial_df, peptides_df_binary, z_scores_initial_df
+    return initial_df, peptides_df_binary
 
 
-def split_data(initial_df, z_scores_initial_df, output_directory, export_train_split):
+def split_data(initial_df, output_directory, export_train_split):
     """Split data into training and held-out sets.
         Train is z-score normalized and imputed. Test is normalized with train parameters and imputed.
 
     Returns:
-        output: training_df, held_out_df, scaled_train, scaled_hold_out
         scaled_train: z-score normalized and imputed training set
         scaled_hold_out: z-score normalized and imputed held-out set
     """
@@ -307,18 +251,9 @@ def split_data(initial_df, z_scores_initial_df, output_directory, export_train_s
 
     print("Train dataframe shape:", training_df.shape)
     print("Train Normalized dataframe shape:", scaled_train.shape)
-
     print("Test dataframe shape:", held_out_df.shape)
     print("Test Normalized dataframe shape:", scaled_hold_out.shape)
-
-
-    #final cleaning
-
-    #training_df = scaled_train.drop(columns=['TCC'])
-    #held_out_df = scaled_hold_out.drop(columns=['TCC'])
-
     print(f"Samples match between Z-score and intesntity dataset: {set(training_df['Sample name']) == set(scaled_train['Sample name'])}")
-
     print(f"Training set size: {training_df.shape}")
     print(f"Held-out set size: {held_out_df.shape}")
 
@@ -343,8 +278,6 @@ def class_specific_workflow(training_df, held_out_df, scaled_train, scaled_hold_
 
     # 1st Filter - Filtering training and held-out dataframes by proteins with peptides
     target_training_df = target_training_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + target_proteins_by_peptides)
-    # target_ho_df = target_ho_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + target_proteins_by_peptides)
-    # target_z_scores_train_df = target_z_scores_train_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + target_proteins_by_peptides)
 
     # 2nd Filter - Filtering taining and held-out dataframes by mann whitney U significant test
     effect_size_for_class = fs.calculate_mann_whitney(
@@ -352,7 +285,6 @@ def class_specific_workflow(training_df, held_out_df, scaled_train, scaled_hold_
     significant_features_mwu = list(effect_size_for_class[(effect_size_for_class['p_value_adj'] < 0.01) & (effect_size_for_class['cliffs_delta'] > 0.15)]['feature'])
 
     target_training_df = target_training_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + significant_features_mwu)
-    #target_ho_df = target_ho_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + significant_features_mwu)
     target_z_scores_train_df = target_z_scores_train_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + significant_features_mwu)
 
 
@@ -479,26 +411,38 @@ def model_fitting(target_training_df, target_ho_df, target_proteins, output_dire
         return None, None, None, None, None
 
 
-def generate_graphs(initial_df, test_target_scores, target_proteins, output_directory):
+def generate_graphs(training_df, held_out_df, test_target_scores, target_proteins, output_directory):
     """Generate and save graphs for results exploration"""
     print("="*80)
     print("Generating graphs...")
     print("="*80)
 
+    initial_df = pd.concat([training_df, held_out_df], ignore_index=True, axis=0)
+    prot_quant_imputed = prep.impute_normal_down_shift_distribution(
+        initial_df.drop([SAMPLES_COLUMN, CLASSIFIED_BY, 'TCC', 'TCC GROUP', 'Classifier'], axis=1, errors='ignore'),
+        width=IMPUTATION_WIDTH,
+        downshift=IMPUTATION_DOWNSHIFT,
+        seed=IMPUTATION_SEED
+    )
+    initial_df_imputed = pd.concat(
+        [initial_df[[SAMPLES_COLUMN, CLASSIFIED_BY, 'TCC']].reset_index(drop=True), prot_quant_imputed.reset_index(drop=True)],
+        axis=1
+    )
+
     # UMAP plot
     UMAP_plot = grph.create_umap_plot(
-        df=initial_df,
+        df=initial_df_imputed,
         output_directory=output_directory,
         feature_columns=target_proteins,
         color_column=CLASSIFIED_BY,
-        metadata_cols=[SAMPLES_COLUMN, CLASSIFIED_BY, 'TCC GROUP'],
+        metadata_cols=[SAMPLES_COLUMN, CLASSIFIED_BY, 'TCC'],
         n_neighbors=5,
         )
 
     # TCC vs Probability plot
-    TCC_plot = grph.plot_tcc_vs_probability(initial_df, test_target_scores, output_directory)
+    #TCC_plot = grph.plot_tcc_vs_probability(initial_df_imputed, test_target_scores, output_directory)
 
-    return TCC_plot, UMAP_plot
+    return UMAP_plot
 
 
 def print_configuration():
@@ -536,16 +480,16 @@ def main():
     #prep, fs, mf, grph = import_custom_modules()
 
     # Load data
-    input_quantifications, df_z_scores, input_metadata = load_data()
+    input_quantifications, input_metadata = load_data()
 
     # Preprocess data
-    initial_df, peptides_df_binary, z_scores_initial_df = preprocess_data(
-        input_quantifications, df_z_scores, input_metadata
+    initial_df, peptides_df_binary = preprocess_data(
+        input_quantifications, input_metadata
     )
 
     # Split data
     training_df, held_out_df, z_scores_train_df, z_scores_held_out = split_data(
-        initial_df, z_scores_initial_df, output_dir, export_train_split=False
+        initial_df, output_dir, export_train_split=False
     )
 
     # Class-specific workflow
@@ -561,7 +505,7 @@ def main():
     model_results = model_fitting(target_z_scores_train_df, target_z_scores_held_out_df, target_proteins, output_dir)
 
     # Generate graphs
-    generate_graphs(initial_df, model_results[4], target_proteins, output_dir)
+    generate_graphs(training_df, held_out_df, model_results[4], target_proteins, output_dir)
 
     if model_results[0] is not None:
         print("=" * 80)
