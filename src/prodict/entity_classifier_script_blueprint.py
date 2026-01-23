@@ -29,7 +29,7 @@ import pickle
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # .../ProDICT
 
 # Load configuration (no CWD dependence)
-CONFIG_PATH = PROJECT_ROOT / "data" / "entity_model_settings.yaml"
+CONFIG_PATH = PROJECT_ROOT / "data" / "small_data_model_settings.yaml"
 cfg.load_config(CONFIG_PATH)
 
 # Derive output directory consistently
@@ -174,19 +174,21 @@ def preprocess_data(input_quantifications, df_z_scores, input_metadata):
     )
     proteins_quant = input_quantifications.iloc[:, :int(input_quantifications.shape[1]/2)].T
     print(f"***proteins quantifications columns: {proteins_quant.iloc[:,:10].columns.tolist()}")
-    # Imputation with configurable parameters
-    prot_quant_imputed = prep.impute_normal_down_shift_distribution(
-        proteins_quant,
-        width=IMPUTATION_WIDTH,
-        downshift=IMPUTATION_DOWNSHIFT,
-        seed=IMPUTATION_SEED
-    )
-    na_columns = prot_quant_imputed.isna().any()
-    na_columns_true = na_columns[na_columns].index.tolist()
-    print("Proteins with empty values:", na_columns_true)
 
-    print(f"***Input after imputation columns: {prot_quant_imputed.iloc[:,:10].columns.tolist()}")
+    # Imputation with configurable parameters
+    # prot_quant_imputed = prep.impute_normal_down_shift_distribution(
+    #     proteins_quant,
+    #     width=IMPUTATION_WIDTH,
+    #     downshift=IMPUTATION_DOWNSHIFT,
+    #     seed=IMPUTATION_SEED
+    # )
+    # na_columns = prot_quant_imputed.isna().any()
+    # na_columns_true = na_columns[na_columns].index.tolist()
+    # print("Proteins with empty values:", na_columns_true)
+
+    # print(f"***Input after imputation columns: {prot_quant_imputed.iloc[:,:10].columns.tolist()}")
     # Cleaning sample names
+    prot_quant_imputed = proteins_quant.copy()  # Placeholder for imputation step
     prot_quant_imputed.reset_index(inplace=True)
     prot_quant_imputed.rename(columns={'index': SAMPLES_COLUMN}, inplace=True)
     prot_quant_imputed[SAMPLES_COLUMN] = prot_quant_imputed[SAMPLES_COLUMN].str.replace('pat_', '').str.strip()
@@ -240,7 +242,14 @@ def preprocess_data(input_quantifications, df_z_scores, input_metadata):
 
 
 def split_data(initial_df, z_scores_initial_df, output_directory, export_train_split):
-    """Split data into training and held-out sets"""
+    """Split data into training and held-out sets.
+        Train is z-score normalized and imputed. Test is normalized with train parameters and imputed.
+
+    Returns:
+        output: training_df, held_out_df, scaled_train, scaled_hold_out
+        scaled_train: z-score normalized and imputed training set
+        scaled_hold_out: z-score normalized and imputed held-out set
+    """
     print("="*80)
     print("Splitting data...")
     print("="*80)
@@ -265,32 +274,48 @@ def split_data(initial_df, z_scores_initial_df, output_directory, export_train_s
     )
 
     print("="*80)
-    print("Preprocessing data, normalizing Train set, and Test set...")
+    print("Preprocessing data, normalizing and imputing Train and Test set...")
     print("="*80)
 
     scaler = StandardScaler()
     scaled_train = scaler.fit_transform(training_df.drop(['Sample name', 'code_oncotree', 'TCC', 'TCC GROUP'], axis=1, errors='ignore'))
-    scaled_train = pd.DataFrame(scaled_train,
-                                columns=training_df.drop(['Sample name', 'code_oncotree', 'TCC', 'TCC GROUP'], axis=1, errors='ignore').columns,
-                                index=training_df.index)
-    scaled_train = pd.concat([training_df[['Sample name', 'code_oncotree']], scaled_train], axis=1)
-    print("Train dataframe shape:", training_df.shape)
-    print("Train Normalized dataframe shape:", scaled_train.shape)
-
     scaled_hold_out = scaler.transform(held_out_df.drop(['Sample name', 'code_oncotree', 'TCC', 'TCC GROUP'], axis=1, errors='ignore'))
-    scaled_hold_out = pd.DataFrame(scaled_hold_out,
-                               columns=held_out_df.drop(['Sample name', 'code_oncotree', 'TCC', 'TCC GROUP'], axis=1, errors='ignore').columns,
-                               index=held_out_df.index)
-    scaled_hold_out = pd.concat([held_out_df[['Sample name', 'code_oncotree']], scaled_hold_out], axis=1)
-    print("Test dataframe shape:", held_out_df.shape)
-    print("Test Normalized dataframe shape:", scaled_hold_out.shape)
 
 
     with open(f"{output_dir}/{TARGET_CLASS_NAME}_normalization_parameters.pkl", "wb") as f:
         pickle.dump(scaler, f)
 
-    training_df = training_df.drop(columns=['TCC'])
-    held_out_df = held_out_df.drop(columns=['TCC'])
+    # Imputing train and test
+    train_scaled_imputed = prep.impute_normal_down_shift_distribution(
+        pd.DataFrame(scaled_train),
+        width=IMPUTATION_WIDTH,
+        downshift=IMPUTATION_DOWNSHIFT,
+        seed=IMPUTATION_SEED
+    )
+    train_scaled_imputed.columns = training_df.drop(['Sample name', 'code_oncotree', 'TCC', 'TCC GROUP'], axis=1, errors='ignore').columns
+    training_df_reset_index = training_df[['Sample name', 'code_oncotree']].reset_index(drop=True)
+    scaled_train = pd.concat([training_df_reset_index, train_scaled_imputed], axis=1)
+
+    ho_scaled_imputed = prep.impute_normal_down_shift_distribution(
+        pd.DataFrame(scaled_hold_out),
+        width=IMPUTATION_WIDTH,
+        downshift=IMPUTATION_DOWNSHIFT,
+        seed=IMPUTATION_SEED
+    )
+    ho_scaled_imputed.columns = held_out_df.drop(['Sample name', 'code_oncotree', 'TCC', 'TCC GROUP'], axis=1, errors='ignore').columns
+    scaled_hold_out = pd.concat([held_out_df[['Sample name', 'code_oncotree']].reset_index(drop=True), ho_scaled_imputed], axis=1)
+
+    print("Train dataframe shape:", training_df.shape)
+    print("Train Normalized dataframe shape:", scaled_train.shape)
+
+    print("Test dataframe shape:", held_out_df.shape)
+    print("Test Normalized dataframe shape:", scaled_hold_out.shape)
+
+
+    #final cleaning
+
+    #training_df = scaled_train.drop(columns=['TCC'])
+    #held_out_df = scaled_hold_out.drop(columns=['TCC'])
 
     print(f"Samples match between Z-score and intesntity dataset: {set(training_df['Sample name']) == set(scaled_train['Sample name'])}")
 
@@ -300,7 +325,7 @@ def split_data(initial_df, z_scores_initial_df, output_directory, export_train_s
     return training_df, held_out_df, scaled_train, scaled_hold_out
 
 
-def class_specific_workflow(training_df, held_out_df, scaled_train, scaled_held_out, peptides_df_binary):
+def class_specific_workflow(training_df, held_out_df, scaled_train, scaled_hold_out, peptides_df_binary):
     """Execute class-specific workflow for specified classification"""
     print("="*80)
     print(f"Starting class-specific workflow for {TARGET_CLASS}...")
@@ -314,7 +339,7 @@ def class_specific_workflow(training_df, held_out_df, scaled_train, scaled_held_
     target_training_df =        fs.binary_labeling(training_df, classified_by=CLASSIFIED_BY, true_class=TARGET_CLASS)
     target_ho_df =              fs.binary_labeling(held_out_df, classified_by=CLASSIFIED_BY, true_class=TARGET_CLASS)
     target_z_scores_train_df =  fs.binary_labeling(scaled_train, classified_by=CLASSIFIED_BY, true_class=TARGET_CLASS)
-    target_z_scores_held_out_df =  fs.binary_labeling(scaled_held_out, classified_by=CLASSIFIED_BY, true_class=TARGET_CLASS)
+    target_z_scores_held_out_df =  fs.binary_labeling(scaled_hold_out, classified_by=CLASSIFIED_BY, true_class=TARGET_CLASS)
 
     # 1st Filter - Filtering training and held-out dataframes by proteins with peptides
     target_training_df = target_training_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + target_proteins_by_peptides)

@@ -350,7 +350,7 @@ def reshape_df_for_fitting(training_df: pd.DataFrame, selected_features: list) -
     Returns:
     pd.DataFrame: Reshaped DataFrame with specified proteins.
     """
-    return pd.concat([training_df.iloc[:,:4],training_df.filter(items=selected_features)],axis=1)
+    return pd.concat([training_df[['Sample name', 'code_oncotree', 'Classifier']],training_df.filter(items=selected_features)],axis=1)
 
 
 def nested_cross_validation_logistic_regression(train_df:pd.DataFrame, n_splits:int, random_state=93, classified_by='code_oncotree'):
