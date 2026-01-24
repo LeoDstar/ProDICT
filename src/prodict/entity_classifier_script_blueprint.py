@@ -30,7 +30,7 @@ import pickle
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # .../ProDICT
 
 # Load configuration (no CWD dependence)
-DEFAULT_CONFIG = PROJECT_ROOT / "data" / "entity_model_settings.yaml"
+DEFAULT_CONFIG = PROJECT_ROOT / "data" / "small_data_model_settings.yaml"
 CONFIG_PATH = Path(os.environ.get("PRODICT_CONFIG", str(DEFAULT_CONFIG)))
 
 # Optional: make relative paths relative to project root
