@@ -6,6 +6,7 @@ Command-line runnable version of the original Jupyter notebook
 ############
 # Imports ##
 ############
+import os
 import sys
 import pandas as pd  # pyright: ignore[reportMissingModuleSource]
 import numpy as np  # type: ignore
@@ -29,8 +30,15 @@ import pickle
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # .../ProDICT
 
 # Load configuration (no CWD dependence)
-CONFIG_PATH = PROJECT_ROOT / "data" / "small_data_model_settings.yaml"
+DEFAULT_CONFIG = PROJECT_ROOT / "data" / "entity_model_settings.yaml"
+CONFIG_PATH = Path(os.environ.get("PRODICT_CONFIG", str(DEFAULT_CONFIG)))
+
+# Optional: make relative paths relative to project root
+if not CONFIG_PATH.is_absolute():
+    CONFIG_PATH = (PROJECT_ROOT / CONFIG_PATH).resolve()
+
 cfg.load_config(CONFIG_PATH)
+# lestrada@linux-cluster:~/projects/ProDICT/src/prodict$ PRODICT_CONFIG=../ProDICT/data/small_data_model_settings.yaml python -m prodict.entity_classifier_script_blueprint
 
 # Derive output directory consistently
 output_dir = PROJECT_ROOT / "data" / cfg.RUN_FOLDER_NAME
