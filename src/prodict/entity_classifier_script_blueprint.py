@@ -111,32 +111,33 @@ def setup_paths():
 
 def load_data():
     """Load all required data files"""
-    print("="*80)
+    print("=" * 80)
     print("Loading data files...")
-    print("="*80)
+    print("=" * 80)
     print(f"Target class: {TARGET_CLASS}")
     print(f"Classification column: {CLASSIFIED_BY}")
 
     # Construct file paths using configuration variables
     intensity_path_file = FOLDER_PATH + PROCESSED_DATA_FOLDER + PREPROCESSED_FP_INTENSITY
-    #z_scores_path_file = FOLDER_PATH + PROCESSED_DATA_FOLDER + PREPROCESSED_FP_Z_SCORES
+    # z_scores_path_file = FOLDER_PATH + PROCESSED_DATA_FOLDER + PREPROCESSED_FP_Z_SCORES
     the_metadata_file = METADATA_PATH + METADATA_FILE
 
     print(f"Loading intensity data from: {intensity_path_file}")
-    #print(f"Loading z-scores data from: {z_scores_path_file}")
+    # print(f"Loading z-scores data from: {z_scores_path_file}")
     print(f"Loading metadata from: {the_metadata_file}")
 
     try:
         input_quantifications = prep.read_table_with_correct_sep(intensity_path_file)
-        #df_z_scores = prep.read_table_with_correct_sep(z_scores_path_file)
-        input_metadata = pd.read_excel(the_metadata_file,
-                                        usecols=['Sample name', 'code_oncotree', 'Tumor cell content', 'TCC_Bioinfo', 'TCC GROUP'],
-                                        dtype={'Sample name': 'string', 'code_oncotree': 'string', 'Tumor cell content': 'float64', 'TCC_Bioinfo': 'float64', 'TCC GROUP': 'string'},
-                                        na_values=['', 'NA', 'NaN', 'nan', 'N/A', 'n/a', 'None', 'TBD', 'notavailable', 'missing'])
+        # df_z_scores = prep.read_table_with_correct_sep(z_scores_path_file)
+        input_metadata = pd.read_excel(
+            the_metadata_file,
+            usecols=['Sample name', 'code_oncotree', 'Tumor cell content', 'TCC_Bioinfo', 'TCC GROUP'],
+            dtype={'Sample name': 'string', 'code_oncotree': 'string', 'Tumor cell content': 'float64', 'TCC_Bioinfo': 'float64', 'TCC GROUP': 'string'},
+            na_values=['', 'NA', 'NaN', 'nan', 'N/A', 'n/a', 'None', 'TBD', 'notavailable', 'missing'])
 
         print("Data files loaded successfully.")
         print(f"Quantifications shape: {input_quantifications.shape}")
-        #print(f"Z-scores shape: {df_z_scores.shape}")
+        # print(f"Z-scores shape: {df_z_scores.shape}")
         print(f"Metadata shape: {input_metadata.shape}")
 
         return input_quantifications, input_metadata
@@ -145,23 +146,23 @@ def load_data():
         print(f"Error loading data files: {e}")
         print("Please check that all data files exist in the specified paths:")
         print(f"  - {intensity_path_file}")
-        print(f"  - {z_scores_path_file}")
+        # print(f"  - {z_scores_path_file}")
         print(f"  - {the_metadata_file}")
         sys.exit(1)
 
 
 def preprocess_data(input_quantifications, input_metadata):
     """Preprocess all data"""
-    print("="*80)
+    print("=" * 80)
     print("Preprocessing data...")
-    print("="*80)
+    print("=" * 80)
     # Protein quantification intensities post-processing
 
     input_quantifications = input_quantifications.set_index(input_quantifications.columns[0])  # noqa: E501
     peptides_quant_info = prep.post_process_meta_intensities(
-        input_quantifications.iloc[:, int(input_quantifications.shape[1]/2):].T
+        input_quantifications.iloc[:, int(input_quantifications.shape[1] / 2):].T
     )
-    proteins_quant = input_quantifications.iloc[:, :int(input_quantifications.shape[1]/2)].T
+    proteins_quant = input_quantifications.iloc[:, :int(input_quantifications.shape[1] / 2)].T
     print(f"***proteins quantifications columns: {proteins_quant.iloc[:,:10].columns.tolist()}")
 
     # Cleaning sample names
@@ -190,7 +191,6 @@ def preprocess_data(input_quantifications, input_metadata):
 
     print("Peptides binary dataframe shape:", peptides_df_binary.shape)
 
-
     return initial_df, peptides_df_binary
 
 
@@ -202,9 +202,9 @@ def split_data(initial_df, output_directory, export_train_split):
         scaled_train: z-score normalized and imputed training set
         scaled_hold_out: z-score normalized and imputed held-out set
     """
-    print("="*80)
+    print("=" * 80)
     print("Splitting data...")
-    print("="*80)
+    print("=" * 80)
     nos_cases = initial_df[initial_df[CLASSIFIED_BY].str.endswith('NOS', na=False)][CLASSIFIED_BY].unique().tolist()
     cases_to_remove = nos_cases + OTHER_CASES
     print(f"Removing undefined cases: {cases_to_remove}")
@@ -225,14 +225,13 @@ def split_data(initial_df, output_directory, export_train_split):
         export=export_train_split,
     )
 
-    print("="*80)
+    print("=" * 80)
     print("Preprocessing data, normalizing and imputing Train and Test set...")
-    print("="*80)
+    print("=" * 80)
 
     scaler = StandardScaler()
     scaled_train = scaler.fit_transform(training_df.drop(['Sample name', 'code_oncotree', 'TCC', 'TCC GROUP'], axis=1, errors='ignore'))
     scaled_hold_out = scaler.transform(held_out_df.drop(['Sample name', 'code_oncotree', 'TCC', 'TCC GROUP'], axis=1, errors='ignore'))
-
 
     with open(f"{output_dir}/{TARGET_CLASS_NAME}_normalization_parameters.pkl", "wb") as f:
         pickle.dump(scaler, f)
@@ -270,9 +269,9 @@ def split_data(initial_df, output_directory, export_train_split):
 
 def class_specific_workflow(training_df, held_out_df, scaled_train, scaled_hold_out, peptides_df_binary):
     """Execute class-specific workflow for specified classification"""
-    print("="*80)
+    print("=" * 80)
     print(f"Starting class-specific workflow for {TARGET_CLASS}...")
-    print("="*80)
+    print("=" * 80)
     # Obtaining high confidence proteins by peptides
     target_proteins_by_peptides = fs.get_high_confidence_proteins(
         peptides_df_binary, TARGET_CLASS, CLASSIFIED_BY, threshold=HIGH_CONFIDENCE_THRESHOLD
@@ -315,7 +314,7 @@ def feature_selection(target_z_scores_train_df, output_directory):
     print(f"Using C values: {FEATURE_SELECTION_C_VALUES}")
 
     # Hyperparameters for ElasticNet
-    print("-"*80)
+    print("-" * 80)
     print("Defining hyperparameters for ElasticNet...")
     print(f"Number of proteins used:{target_z_scores_train_df.shape[1]}")
 
@@ -330,7 +329,7 @@ def feature_selection(target_z_scores_train_df, output_directory):
         target_best_params = {'l1_ratio': ELNET_L1_RATIO, 'C': ELNET_C_VALUE}
 
     # Feature Selection by ElasticNet Cross-Validation
-    print("-"*80)
+    print("-" * 80)
     print("Selecting features...")
 
     try:
@@ -448,7 +447,7 @@ def generate_graphs(training_df, held_out_df, test_target_scores, target_protein
         )
 
     # TCC vs Probability plot
-    #TCC_plot = grph.plot_tcc_vs_probability(initial_df_imputed, test_target_scores, output_directory)
+    # TCC_plot = grph.plot_tcc_vs_probability(initial_df_imputed, test_target_scores, output_directory)
 
     return UMAP_plot
 
@@ -485,7 +484,7 @@ def main():
 
     # Setup paths and import modules
     print(f'Expected output directory: {output_dir}')
-    #prep, fs, mf, grph = import_custom_modules()
+    # prep, fs, mf, grph = import_custom_modules()
 
     # Load data
     input_quantifications, input_metadata = load_data()
@@ -502,8 +501,9 @@ def main():
 
     # Class-specific workflow
     target_training_df, target_ho_df, target_z_scores_train_df, target_z_scores_held_out_df = class_specific_workflow(
-        training_df, held_out_df, z_scores_train_df, z_scores_held_out, peptides_df_binary #peptides_df_binary might introduce data leakage
-        ## peptideds_df_binary was calculates with all samples and not just training samples
+        training_df, held_out_df, z_scores_train_df, z_scores_held_out, peptides_df_binary
+        # peptides_df_binary might introduce data leakage
+        # peptideds_df_binary was calculates with all samples and not just training samples
     )
 
     # Feature selection
