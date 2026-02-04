@@ -28,12 +28,8 @@ import pickle
 
 # Importing settings from YAML configuration for the model
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # .../ProDICT
-
-# Load configuration (no CWD dependence)
 DEFAULT_CONFIG = PROJECT_ROOT / "data" / "small_data_model_settings.yaml"
 CONFIG_PATH = Path(os.environ.get("PRODICT_CONFIG", str(DEFAULT_CONFIG)))
-
-# Optional: make relative paths relative to project root
 if not CONFIG_PATH.is_absolute():
     CONFIG_PATH = (PROJECT_ROOT / CONFIG_PATH).resolve()
 
@@ -267,7 +263,7 @@ def split_data(initial_df, output_directory, export_train_split):
     return training_df, held_out_df, scaled_train, scaled_hold_out
 
 
-def class_specific_workflow(training_df, held_out_df, scaled_train, scaled_hold_out, peptides_df_binary):
+def class_specific_workflow(training_df, held_out_df, scaled_train, scaled_hold_out, peptides_df_binary, output_directory, tumor_type_name=TARGET_CLASS_NAME):
     """Execute class-specific workflow for specified classification"""
     print("=" * 80)
     print(f"Starting class-specific workflow for {TARGET_CLASS}...")
@@ -288,19 +284,20 @@ def class_specific_workflow(training_df, held_out_df, scaled_train, scaled_hold_
 
     # 2nd Filter - Filtering taining and held-out dataframes by mann whitney U significant test
     effect_size_for_class = fs.calculate_mann_whitney(
-        target_training_df, exclude_cols=['code_oncotree', 'TCC', 'Classifier'])
-    significant_features_mwu = list(effect_size_for_class[(effect_size_for_class['p_value_adj'] < 0.01) & (effect_size_for_class['cliffs_delta'] > 0.15)]['feature'])
+        target_training_df, output_directory, tumor_type_name, exclude_cols=['code_oncotree', 'TCC', 'Classifier'])
+    significant_features_mwu = list(effect_size_for_class[(effect_size_for_class['p_value_adj'] < 0.05) & (effect_size_for_class['cliffs_delta'].abs()> 0.147)]['feature'])
 
     target_training_df = target_training_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + significant_features_mwu)
     target_z_scores_train_df = target_z_scores_train_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + significant_features_mwu)
 
+    #target_z_scores_train_df = target_z_scores_train_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + target_proteins_by_peptides)
 
     print(f"Filtered training set shape: {target_training_df.shape}")
     print(f"Filtered held-out set shape: {target_ho_df.shape}")
     print(f"Filtered z-scores training set shape: {target_z_scores_train_df.shape}")
-    print('*'*80)
-    print(f"{len(significant_features_mwu)} significant proteins (p<0.01 & Cliff's d > 0.15)")
-    print(f"{significant_features_mwu[:10]}")
+    print('*' * 80)
+    # print(f"{len(significant_features_mwu)} significant proteins (p<0.01 & Cliff's d > 0.15)")
+    # print(f"{significant_features_mwu[:10]}")
 
     return target_training_df, target_ho_df, target_z_scores_train_df, target_z_scores_held_out_df
 
@@ -501,7 +498,7 @@ def main():
 
     # Class-specific workflow
     target_training_df, target_ho_df, target_z_scores_train_df, target_z_scores_held_out_df = class_specific_workflow(
-        training_df, held_out_df, z_scores_train_df, z_scores_held_out, peptides_df_binary
+        training_df, held_out_df, z_scores_train_df, z_scores_held_out, peptides_df_binary, output_dir, tumor_type_name=TARGET_CLASS_NAME
         # peptides_df_binary might introduce data leakage
         # peptideds_df_binary was calculates with all samples and not just training samples
     )

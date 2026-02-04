@@ -209,16 +209,18 @@ def elnet_cross_val (df:pd.DataFrame, classified_by:str, l1_ratio:float, C:float
     return(coeff_score_df)
 
 
-def elnet_wrapper (df:pd.DataFrame,
-                             classified_by:str,
-                             tumor_type_name:str,
-                             l1_ratio:float,
-                             C:float,
-                             output_directory:str,
-                             n_splits=4,
-                             n_repeats=1,
-                             n_jobs=16,
-                             export=True) -> pd.DataFrame:
+def elnet_wrapper(
+    df: pd.DataFrame,
+    classified_by: str,
+    tumor_type_name: str,
+    l1_ratio: float,
+    C: float,
+    output_directory: str,
+    n_splits=4,
+    n_repeats=1,
+    n_jobs=16,
+    export=True
+) -> pd.DataFrame:
 
     """
     Wrapper funtion of elnet_cross_val. Executes "n_repeats" times a cross validated logistic regression, storing the coefficients and scores for each "n_repeats" fit of the data.
@@ -261,7 +263,7 @@ def elnet_wrapper (df:pd.DataFrame,
     #Export
     if export:
         df_concatenated.to_excel(os.path.join(output_directory, f'{tumor_type_name}_coefficients.xlsx'), engine='xlsxwriter', index=False)
-        print(f'DataFrame exported to: {os.path.join(output_directory,  f'{tumor_type_name}_coefficients.xlsx')}')
+        print(f'DataFrame exported to: {os.path.join(output_directory,  f"{tumor_type_name}_coefficients.xlsx")}')
 
     return (df_concatenated)
 
@@ -313,7 +315,7 @@ def statistic_from_coefficients (Coefficients_df:pd.DataFrame,
 
 
     ## Message to user ##
-    print("With ",protein_coefficients_stats.shape[0], " folds, the following statistics were obtained, from feature selection:")
+    print("A total of", protein_coefficients_stats.shape[0], " had a coefficient different than zero:")
     print("• Mean MCC score:",np.round(coefficients_stats.loc['MCC_score']['mean'], 4), '±', np.round(coefficients_stats.loc['MCC_score']['std'], 4))
     print()
 
@@ -492,9 +494,12 @@ def nested_cv_hparameters_selection (input_dict:dict):
     return result
 
 
-def calculate_mann_whitney(train_df: pd.DataFrame,
-                             group_col: str = 'Classifier',
-                             exclude_cols: Optional[List[str]] = None) -> pd.DataFrame:
+def calculate_mann_whitney(
+    train_df: pd.DataFrame,
+    output_directory: str,
+    tumor_type_name: str,
+    group_col: str = 'Classifier',
+    exclude_cols: Optional[List[str]] = None) -> pd.DataFrame:
     """
     Run Mann-Whitney U tests per numeric column using groups defined by group_col == class_label.
     Returns a DataFrame with raw p-values, BH-adjusted p-values, and Cliff's delta.
@@ -534,6 +539,8 @@ def calculate_mann_whitney(train_df: pd.DataFrame,
     if valid_mask.any():
         adj[valid_mask] = fdrcorrection(pvals[valid_mask], alpha=0.05)[1]
     results_df['p_value_adj'] = adj
+    results_df.to_csv('mann_whitney_results.csv', index=False)
+    results_df.to_csv(os.path.join(output_directory, f'{tumor_type_name}_diff_expression.csv'), index=False)
+    print(f'Mann Whitney U test exported to: {os.path.join(output_directory,  f"{tumor_type_name}_diff_expression.xlsx")}')
 
     return results_df.sort_values(by='p_value_adj', ascending=True)
-
