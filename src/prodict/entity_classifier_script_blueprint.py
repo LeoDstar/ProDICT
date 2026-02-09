@@ -285,7 +285,7 @@ def class_specific_workflow(training_df, held_out_df, scaled_train, scaled_hold_
     # 2nd Filter - Filtering taining and held-out dataframes by mann whitney U significant test
     effect_size_for_class = fs.calculate_mann_whitney(
         target_training_df, output_directory, tumor_type_name, exclude_cols=['code_oncotree', 'TCC', 'Classifier'])
-    significant_features_mwu = list(effect_size_for_class[(effect_size_for_class['p_value_adj'] < 0.05) & (effect_size_for_class['cliffs_delta'].abs()> 0.147)]['feature'])
+    significant_features_mwu = list(effect_size_for_class[(effect_size_for_class['p_value_adj'] < 0.01) & (effect_size_for_class['cliffs_delta'].abs()> 0.147)]['feature'])
 
     target_training_df = target_training_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + significant_features_mwu)
     target_z_scores_train_df = target_z_scores_train_df.filter(items=[SAMPLES_COLUMN, CLASSIFIED_BY, 'Classifier'] + significant_features_mwu)
