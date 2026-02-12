@@ -1,6 +1,5 @@
 """
 Classifier Workflow Script
-Command-line runnable version of the original Jupyter notebook
 """
 
 ############
@@ -34,12 +33,12 @@ if not CONFIG_PATH.is_absolute():
     CONFIG_PATH = (PROJECT_ROOT / CONFIG_PATH).resolve()
 
 cfg.load_config(CONFIG_PATH)
-# lestrada@linux-cluster:~/projects/ProDICT/src/prodict$ PRODICT_CONFIG=../ProDICT/data/small_data_model_settings.yaml python -m prodict.entity_classifier_script_blueprint
 
-# Derive output directory consistently
+# output directory
 output_dir = PROJECT_ROOT / "data" / cfg.RUN_FOLDER_NAME
 output_dir.mkdir(parents=True, exist_ok=True)
 from prodict.config import *
+
 ###################
 # Logging Setup ###
 ###################
@@ -97,7 +96,6 @@ def setup_paths():
     current_script_dir = Path(__file__).parent.absolute()
     project_root = current_script_dir.parent
 
-    # Add src/data to path
     module_path = str(project_root / "src" / "data")
     if module_path not in sys.path:
         sys.path.append(module_path)
@@ -304,9 +302,9 @@ def class_specific_workflow(training_df, held_out_df, scaled_train, scaled_hold_
 
 def feature_selection(target_z_scores_train_df, output_directory):
     """Perform feature selection using ElasticNet"""
-    print("="*80)
+    print("=" * 80)
     print("Starting feature selection...")
-    print("="*80)
+    print("=" * 80)
     print(f"Using L1 ratios: {FEATURE_SELECTION_L1_RATIOS}")
     print(f"Using C values: {FEATURE_SELECTION_C_VALUES}")
 
