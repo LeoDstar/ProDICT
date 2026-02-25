@@ -1,0 +1,17 @@
+Data Processing:
+The data split is done first
+Followed by Normalization on the train set, for the test set the parameters drawn from train are used
+Next, imputation is done, using random variables from lower distribution, on both test and train
+
+Feature selection is bases on:
+1. Proteins identified with at least 2 peptides
+2. Proteins identified in at least 70% of the sample of a ★Entity
+3. A Mann Whitney U test is done of entity vs all, for each protein.
+    p-values are adjusted. Criteria for selection was :
+    significant_features_mwu = list(effect_size_for_class[effect_size_for_class['p_value_adj'] < 0.05]['feature'])
+
+***So only 0.05 threshold for the p-values adjusted***
+
+Then the workflow follows as usual.
+Gtid Search
+Feature Selection via Elastic Net, drawn from the statistics done from the folds of the repetition (bootstrap)
