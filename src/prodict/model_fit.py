@@ -237,7 +237,12 @@ def classification_scores (calc_probs_df):
     return probabilities_df
 
 
-def logistic_regression_results (log_reg_model, df_train: pd.DataFrame, df_test: pd.DataFrame, true_class:list, classified_by:str ) -> tuple:
+def logistic_regression_results (log_reg_model,
+                                 df_train: pd.DataFrame,
+                                 df_test: pd.DataFrame,
+                                 true_class: list,
+                                 classified_by: str,
+                                 output_directory: str ) -> tuple:
     """
     class_criteria: string that defines the classification criteria (i.e. 'Tissue_origin' or 'tissue_topology'). 'code_oncotree' is always included.
     """
@@ -353,6 +358,17 @@ def logistic_regression_ridge(df: pd.DataFrame,
     class_name = "_".join(true_class)
     dump(log_reg, os.path.join(output_directory,f'{class_name}_log_reg_ridge_model.pkl'))
     print(f'Model saved as {class_name}_log_reg_ridge_model.pkl')
+
+    # Cross-validation for MCC score
+    cv = RepeatedStratifiedKFold(n_splits=3, n_repeats=35, random_state=93)
+    mcc_scorer = make_scorer(matthews_corrcoef)
+    mcc_scores = cross_val_score(log_reg, X_train, y_train, cv=cv, scoring=mcc_scorer)
+
+    mcc_mean = mcc_scores.mean()
+    mcc_std = mcc_scores.std()
+
+    print(f'Train MCC Score: {mcc_mean:.4f} ± {mcc_std:.4f} (CV: 3-fold × 35 repeats)')
+    print(f'95% CI: [{mcc_mean - 1.96*mcc_std:.4f}, {mcc_mean + 1.96*mcc_std:.4f}]')
 
     return log_reg
 
