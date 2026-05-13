@@ -58,7 +58,7 @@ src/data/model_fit.py
 src/data/preprocessing.py
 src/prodict/LogRegFxF.py
 src/prodict/__init__.py
-src/prodict/entity_classifier_script_blueprint.py
+src/prodict/entity_classifier_generator.py
 src/prodict/feature_selection.py
 src/prodict/graphs.py
 src/prodict/model_fit.py

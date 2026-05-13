@@ -1,5 +1,0 @@
-Model uses the standard pipeline
-However add additional filtering step, using Mann Whitney U p-values and also the Cliff delta values.
-This one uses the absolute value of Cliff delta, which was erronously not done in the run "0_run_mwu_cliffd"
-This should give more candidates proteins and possibly improve results for all entities.
-

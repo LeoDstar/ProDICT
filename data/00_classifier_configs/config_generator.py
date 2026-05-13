@@ -2,7 +2,7 @@ from pathlib import Path
 import re
 
 BASE = Path("BRCA_model_settings.yaml")          # your blueprint file
-OUTDIR = Path("configs_out")
+OUTDIR = Path("configs_MWU")
 OUTDIR.mkdir(parents=True, exist_ok=True)
 
 # Each entry is a list -> becomes TARGET_CLASS : ["...","..."]

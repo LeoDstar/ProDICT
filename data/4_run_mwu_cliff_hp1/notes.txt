@@ -1,7 +1,0 @@
-These models follow the normal pipeline
-Trained and tested on z scores
-feature selection via peptides, MWU and elastic NET
-
-Bootstrapping is done with C:1
-
-Part of a bigger grid search

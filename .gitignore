@@ -6,6 +6,7 @@
 *.pyc
 *.pio
 *.pyd
+*.svg
 
 
 # Compiled source #

@@ -20,7 +20,7 @@ import prodict.preprocessing as prep
 import prodict.feature_selection as fs
 import prodict.model_fit as mf
 import prodict.graphs as grph
-import prodict.config as cfg
+import prodict.config as conf
 
 from sklearn.preprocessing import StandardScaler
 import pickle
@@ -30,10 +30,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]  # .../ProDICT
 
 # Load configuration (no CWD dependence)
 CONFIG_PATH = PROJECT_ROOT / "ProDICT" / "data" / "entity_model_settings.yaml"
-cfg.load_config(CONFIG_PATH)
+conf.load_config(CONFIG_PATH)
 
 # Derive output directory consistently
-output_dir = PROJECT_ROOT / "ProDICT" / "data" / cfg.RUN_FOLDER_NAME
+output_dir = PROJECT_ROOT / "ProDICT" / "data" / conf.RUN_FOLDER_NAME
 output_dir.mkdir(parents=True, exist_ok=True)
 from prodict.config import *
 
