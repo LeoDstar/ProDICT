@@ -359,16 +359,21 @@ def statistic_from_coefficients (Coefficients_df:pd.DataFrame,
     coefficients_stats.loc['Wald Chi-Square'] = (np.square(coefficients_stats.loc['mean']))/(np.square(coefficients_stats.loc['std']))
     p_values = 1 - chi2.cdf(coefficients_stats.loc['Wald Chi-Square'], df=1)
 
-    fdr_corrections = fdrcorrection(p_values, alpha=.01, method='indep', is_sorted=False)
-    coefficients_stats.loc[' p-value_corrected'] = fdr_corrections[1]
-    coefficients_stats.loc['Significant'] = fdr_corrections[0] #Significance is definded with alpha = 0.01 from chi2 dist.
+    significant_proteins, p_corrected_proteins = fdrcorrection(p_values[:-5], alpha=.01, method='indep', is_sorted=False)
+    significant_scores, p_corrected_scores = fdrcorrection(p_values[-5:], alpha=.01, method='indep', is_sorted=False)
 
-    #Defining if the Wald value is greater than the significance level at 99% = 6.635. N
-    #coefficients_stats.loc['Significant'] = [True if i > 6.635 else False for i in coefficients_stats.loc['Wald Chi-Square'] ]
+    p_corrected = np.concatenate([p_corrected_proteins, p_corrected_scores])
+    significant = np.concatenate([significant_proteins, significant_scores])
 
-    coefficients_stats= coefficients_stats.transpose()
+    coefficients_stats.loc['p_corrected'] = p_corrected
+    coefficients_stats.loc['Significant'] = significant  #Significance is definded with alpha = 0.01 from chi2 dist.
 
-    #returning list of significant proteins in order of coefficient value
+    # Defining if the Wald value is greater than the significance level at 99% = 6.635. N
+    # coefficients_stats.loc['Significant'] = [True if i > 6.635 else False for i in coefficients_stats.loc['Wald Chi-Square'] ]
+
+    coefficients_stats = coefficients_stats.transpose()
+
+    # returning list of significant proteins in order of coefficient value
     protein_coefficients_stats = coefficients_stats.iloc[:-5,:].sort_values(by='mean', ascending=False) #Sort by mean value of coefficients
 
     significant_proteins = protein_coefficients_stats[protein_coefficients_stats['Significant']==1].index.tolist()
