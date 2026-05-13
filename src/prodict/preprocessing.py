@@ -4,6 +4,7 @@
 import pandas as pd
 import numpy as np
 import os
+import os
 from sklearn.model_selection import train_test_split
 
 #######################################################################################################################
@@ -104,7 +105,7 @@ def remove_class(df: pd.DataFrame, class_list: list, classified_by: str, output_
 
     return modified_df.reset_index(drop=True)
 
-def data_split(df: pd.DataFrame, output_directory:str, split_size=0.25, classified_by='code_oncotree', export=True) -> tuple[pd.DataFrame, pd.DataFrame]:
+def data_split(df: pd.DataFrame, split_size=0.25, classified_by='code_oncotree', export=True) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Stratified split of the dataset into training and held-out sets, ensuring that each class has at least two samples. from scikit-learn
 
