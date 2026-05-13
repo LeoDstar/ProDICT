@@ -1,0 +1,28 @@
+name: LogisticRegression
+channels:
+  - https://repo.anaconda.com/pkgs/main
+  - https://repo.anaconda.com/pkgs/r
+dependencies:
+  - numpy
+  - scikit-learn
+  - matplotlib
+  - tqdm
+  - seaborn
+  - pandas
+  - scipy
+  - joblib
+  - jupyter
+  - statsmodels
+  - openpyxl
+  - plotly
+  - umap-learn
+  - pyarrow
+  - mamba
+  - git
+  - xlsxwriter
+  - optuna
+  - conda-forge::shap
+  - conda-forge::upsetplot
+  - conda-forge::graphviz
+  - python-graphviz
+prefix: /home/lestrada/miniconda3/envs/LogisticRegression

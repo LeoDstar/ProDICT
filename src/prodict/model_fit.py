@@ -1,6 +1,8 @@
 ### Dependencies ###
 import pandas as pd # pyright: ignore[reportMissingModuleSource]
 import numpy as np # type: ignore
+import pandas as pd # pyright: ignore[reportMissingModuleSource]
+import numpy as np # type: ignore
 import os
 import warnings
 
@@ -9,7 +11,6 @@ from sklearn.model_selection import StratifiedKFold, GridSearchCV, RepeatedStrat
 from sklearn.metrics import confusion_matrix, make_scorer, f1_score, matthews_corrcoef # pyright: ignore[reportMissingModuleSource]
 from joblib import dump # type: ignore
 from sklearn.exceptions import ConvergenceWarning # pyright: ignore[reportMissingModuleSource]
-from entity_model_settings import run_folder_name
 
 
 ### Functions ###
@@ -27,7 +28,7 @@ def nested_cross_validation_logistic_regression(train_df:pd.DataFrame, n_splits:
     """
 
     y = train_df['Classifier']  # True values (dependent variable)
-    X = train_df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1) # Independent variables (proteins)
+    X = train_df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1, errors='ignore') # Independent variables (proteins)
 
     # Define the hyperparameter grid for Logistic Regression
     param_grid = {'C': [0.1, 1, 10]}
@@ -84,16 +85,16 @@ def nested_cross_validation_logistic_regression(train_df:pd.DataFrame, n_splits:
         print(f"{inner_fold_cycle} Inner fold best parameter={best_param}, Score={best_score:.4f}, Outer Validation MCC Score: {outer_score:.4f}")
         print()
         inner_fold_cycle += 1
- 
+
     # Print overall mean MCC score
     print(f"Average MCC across all outer folds: {np.mean(outer_scores):.4f}")
-    
+
     return outer_scores, best_params
 
 
 def wrapper_nested_cv(train_df:pd.DataFrame, random_state_tries=4, n_splits=4, classified_by='code_oncotree') -> dict:
     """
-    Wrapper function for nested cross-validation. 
+    Wrapper function for nested cross-validation.
     Repeats the nested cross-validation process for a specified number of random state tries.
 
     Args:
@@ -105,12 +106,12 @@ def wrapper_nested_cv(train_df:pd.DataFrame, random_state_tries=4, n_splits=4, c
     Returns:
         dict: Results of the nested cross-validation.
     """
-    
+
     results = {}
     for i in list(range(random_state_tries)):
         print(f"• Running for random_state={i}")
         outer_scores, best_params = nested_cross_validation_logistic_regression(
-            train_df, 
+            train_df,
             random_state=i,
             n_splits=n_splits,
             classified_by=classified_by
@@ -121,12 +122,12 @@ def wrapper_nested_cv(train_df:pd.DataFrame, random_state_tries=4, n_splits=4, c
         }
         print()
         print("-" * 50)
-    
+
     return results
 
 
 def nested_cv_hparameters_selection (input_dict:dict):
-    
+
     # Initialize the result dictionary
     result = {}
 
@@ -134,14 +135,14 @@ def nested_cv_hparameters_selection (input_dict:dict):
     for key, value in input_dict.items():
         scores = value['outer_scores']
         params = value['best_params']
-        
+
         for score, param in zip(scores, params):
             C_value = param['C']
-            
+
             # If the C value is not already in the result, initialize it
             if C_value not in result:
                 result[C_value] = {'scores': [], 'count': 0, 'avg': 0}
-            
+
             # Append the score, update count
             result[C_value]['scores'].append(score)
             result[C_value]['count'] += 1
@@ -165,15 +166,15 @@ def log_likelihood(df:pd.DataFrame):
     - log_likelihood: Log-likelihood value.
     """
     log_likelihood = np.sum(np.log(np.where(df['Classifier'] == 1, df['Probability'], 1 - df['Probability'])))
-    
+
     return log_likelihood
 
 
 def classification_scores (calc_probs_df):
-    """Calculates the classification scores from the prediction values with a threshold of 0.5. 
-    
-    Inputs: 
-    calc_probs_df : 
+    """Calculates the classification scores from the prediction values with a threshold of 0.5.
+
+    Inputs:
+    calc_probs_df :
 
     Args:
         calc_probs_df : Dataframe with the calculated probabilities.
@@ -184,7 +185,7 @@ def classification_scores (calc_probs_df):
     probabilities_df = calc_probs_df.copy()
     probabilities_df.reset_index(drop=True, inplace=True)
     probabilities_df['Predicted'] = np.rint(probabilities_df['Probability'])
-    
+
     # Perdormance Scores -----------------------------------------------------------------------
     MCC = matthews_corrcoef(probabilities_df['Classifier'], probabilities_df['Predicted'])
     F1_Macro = f1_score(probabilities_df['Classifier'], probabilities_df['Predicted'], average='macro') #For Imbalanced Dataset
@@ -194,13 +195,13 @@ def classification_scores (calc_probs_df):
 
     # False positives detection -----------------------------------------------------------------
     False_Positives = []
-    for i in range(probabilities_df.shape[0]): 
+    for i in range(probabilities_df.shape[0]):
         if (probabilities_df['Predicted'][i] == 1) & (probabilities_df['Classifier'][i] == 0):
             False_Positives.append(probabilities_df.loc[i])
 
     # False Negatives Detection -----------------------------------------------------------------
     False_Negatives = []
-    for i in range(probabilities_df.shape[0]): 
+    for i in range(probabilities_df.shape[0]):
         if (probabilities_df['Predicted'][i] == 0) & (probabilities_df['Classifier'][i] == 1):
             False_Negatives.append(probabilities_df.loc[i])
 
@@ -223,7 +224,7 @@ def classification_scores (calc_probs_df):
     if False_Positives:
         print (pd.DataFrame(False_Positives))
     else:
-        print("No False Positives detected.")   
+        print("No False Positives detected.")
     print()
     print ('------------------------------------')
     print ('•False Negatives:')
@@ -236,51 +237,46 @@ def classification_scores (calc_probs_df):
     return probabilities_df
 
 
-def logistic_regression_results (log_reg_model, 
-                                 df_train: pd.DataFrame, 
-                                 df_test: pd.DataFrame, 
-                                 true_class:list, 
-                                 classified_by:str, 
-                                 output_directory:str ) -> tuple:  
+def logistic_regression_results (log_reg_model, df_train: pd.DataFrame, df_test: pd.DataFrame, true_class:list, classified_by:str ) -> tuple:
     """
-    class_criteria: string that defines the classification criteria (i.e. 'Tissue_origin' or 'tissue_topology'). 'code_oncotree' is always included. 
+    class_criteria: string that defines the classification criteria (i.e. 'Tissue_origin' or 'tissue_topology'). 'code_oncotree' is always included.
     """
     ### Data preparation ###
-    results =[]  
+    results =[]
     class_name = "_".join(true_class)
 
-    X_train = df_train.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1)
+    X_train = df_train.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1, errors='ignore')
     y_train = df_train['Classifier']
 
-    X_test = df_test.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1)
+    X_test = df_test.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1, errors='ignore')
     y_test = df_test['Classifier']
 
     ### Processing Data from model ###
     #Logaritmic regression model coeffiecient:
- 
+
     log_reg_coeff_list = log_reg_model.coef_.tolist()
-    
+
     #Logaritmic regression model coeffiecient INTERCEPT:
     log_reg_coeff_list[0].append (log_reg_model.intercept_[0])
-        
+
     #Model predictions for score in folds
     y_predict = log_reg_model.predict(X_test.filter(items=log_reg_model.feature_names_in_))
     y_train_predict = log_reg_model.predict(X_train)
-         
+
     results.append(log_reg_coeff_list[0])
-    
+
     #F1_score for class 1 - entity prediction
     f1_score_class_1 = f1_score(y_test, y_predict, pos_label=1)
     log_reg_coeff_list[0].append(f1_score_class_1)
-    
+
     #F1_score for class 0 - entity prediction
     f1_score_class_0 = f1_score(y_test, y_predict, pos_label=0)
     log_reg_coeff_list[0].append(f1_score_class_0)
-    
+
     #F1_score for class 1 - entity prediction
     f1_score_class_weighted = f1_score(y_test, y_predict, average= 'weighted')
     log_reg_coeff_list[0].append(f1_score_class_weighted)
-    
+
     #MCC Score test
     MCC_score_test = matthews_corrcoef(y_test, y_predict)
     log_reg_coeff_list[0].append(MCC_score_test)
@@ -291,7 +287,7 @@ def logistic_regression_results (log_reg_model,
 
     col_names = list(X_train.columns)
     col_names.extend(['Intercept','F1_1', 'F1_0','F1_weighted','MCC_score' ])
-    
+
     final_model_coefficients = pd.DataFrame(results)
     final_model_coefficients.columns = col_names
     final_model_coefficients_path = os.path.join(output_directory, f'{class_name}_log_reg_coefficients.xlsx')
@@ -311,64 +307,53 @@ def logistic_regression_results (log_reg_model,
     test_probs_file = os.path.join(output_directory,f'test_{class_name}_probabilities.xlsx')
     test_probabilities.to_excel(test_probs_file, index=False, engine='xlsxwriter')
 
-    
+
     train_probabilities = df_train[['Sample name','code_oncotree','Classifier']]
     train_probabilities.insert(3, value = log_reg_model.predict_proba(df_train.filter(items=log_reg_model.feature_names_in_)).T[1] , column = 'Probability')
-    
+
 
     train_probs_path = os.path.join(output_directory,f'train_{class_name}_probabilities.xlsx')
     train_probabilities.to_excel(train_probs_path, index=False, engine='xlsxwriter')
 
-    return (final_model_coefficients, train_probabilities , test_probabilities)  
+    return (final_model_coefficients, train_probabilities , test_probabilities)
 
 
-def logistic_regression_ridge(df: pd.DataFrame, 
-                              C_:float, 
-                              true_class:list, 
-                              classified_by:str, 
+def logistic_regression_ridge(df: pd.DataFrame,
+                              C_:float,
+                              true_class:list,
+                              classified_by:str,
                               output_directory:str) -> LogisticRegression : #Define the hypeparameters for this entity
 
-    """Logistic Regression, regularized with Ridge. 
-    Input: 
-    df: Input TRAINING DATAFRAME, Sample name + Classification + Protein Intensities. 
-    entity: specify the code of the entity to create the model. 
-    
+    """Logistic Regression, regularized with Ridge.
+    Input:
+    df: Input TRAINING DATAFRAME, Sample name + Classification + Protein Intensities.
+    entity: specify the code of the entity to create the model.
+
     Returns:
         SKLEARN model object. This can be used for former analysis.
     """
     #Selecting Data
     y_train = df['Classifier']  # True values (dependent variable)
-    X_train = df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1) # Independent variables (proteins)
+    X_train = df.drop(columns=['Sample name', 'Classifier', classified_by, 'TCC'], axis=1, errors='ignore') # Independent variables (proteins)
 
 
     #Defining model parameters
-    log_reg = LogisticRegression(penalty='elasticnet',  
-                                 solver='saga', 
+    log_reg = LogisticRegression(penalty='elasticnet',
+                                 solver='saga',
                                  l1_ratio=0, #Ridge regularization
-                                 max_iter=10000, 
-                                 C = C_, 
+                                 max_iter=10000,
+                                 C = C_,
                                  class_weight= 'balanced',
                                  warm_start=False,
                                  random_state=93
                                 )
-    
+
     log_reg.fit(X_train, y_train)
-    
+
     class_name = "_".join(true_class)
     dump(log_reg, os.path.join(output_directory,f'{class_name}_log_reg_ridge_model.pkl'))
     print(f'Model saved as {class_name}_log_reg_ridge_model.pkl')
-    
-    # Cross-validation for MCC score
-    cv = RepeatedStratifiedKFold(n_splits=3, n_repeats=35, random_state=93)
-    mcc_scorer = make_scorer(matthews_corrcoef)
-    mcc_scores = cross_val_score(log_reg, X_train, y_train, cv=cv, scoring=mcc_scorer)
 
-    mcc_mean = mcc_scores.mean()
-    mcc_std = mcc_scores.std()
-    
-    print(f'Train MCC Score: {mcc_mean:.4f} ± {mcc_std:.4f} (CV: 3-fold × 35 repeats)')
-    print(f'95% CI: [{mcc_mean - 1.96*mcc_std:.4f}, {mcc_mean + 1.96*mcc_std:.4f}]')
-    
     return log_reg
 
 
