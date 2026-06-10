@@ -22,7 +22,8 @@ from sklearn.exceptions import ConvergenceWarning
 
 
 ### Functions ###
-def binary_labeling(df: pd.DataFrame, classified_by: str, true_class: list ) -> pd.DataFrame:
+
+def binary_labeling(df: pd.DataFrame, classified_by: str, true_class: list) -> pd.DataFrame:
     """
     Adds a binary classifier column to the DataFrame based on the specified true classes.
 

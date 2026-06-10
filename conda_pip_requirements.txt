@@ -87,7 +87,7 @@ pillow @ file:///croot/pillow_1744613067434/work
 platformdirs @ file:///croot/platformdirs_1744273042065/work
 plotly @ file:///home/conda/feedstock_root/build_artifacts/plotly_1742240435426/work
 ppca==0.0.4
--e git+https://github.com/LeoDstar/ProDICT.git@5dddceee6a1af2e3f50336c95f4d34c8c2c5ae13#egg=prodict
+-e git+https://github.com/LeoDstar/ProDICT.git@12aafa9e9c649c83b66d36b65babd8892094e64a#egg=prodict
 prometheus_client @ file:///croot/prometheus_client_1744271615306/work
 prompt_toolkit @ file:///work/perseverance-python-buildout/croot/prompt-toolkit_1728511366266/work
 psutil @ file:///croot/psutil_1736367091698/work

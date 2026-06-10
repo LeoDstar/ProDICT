@@ -25,4 +25,7 @@ dependencies:
   - conda-forge::upsetplot
   - conda-forge::graphviz
   - python-graphviz
-prefix: /home/lestrada/miniconda3/envs/LogisticRegression
+  - pip
+  - pip:
+    - -r conda_pip_requirements.txt
+  
